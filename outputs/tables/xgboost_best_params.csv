@@ -1,0 +1,2 @@
+n_estimators,max_depth,learning_rate,subsample,colsample_bytree,min_child_weight,random_state,n_jobs
+266,5,0.021928303184525152,0.6610209522147046,0.76651794363692,2,42,-1

@@ -6,19 +6,31 @@ This document explains the IOp analysis project in plain language, providing con
 
 ## KEY RESULTS (EMOVI 2023)
 
-| Metric | Value | Interpretation |
-|--------|-------|----------------|
-| **IOp Share (Random Forest)** | **52.6%** | Over half of income inequality is due to circumstances |
-| IOp Share (Decision Tree) | 55.4% | Interpretable partition into 58 types |
-| IOp Share (Gradient Boosting) | 56.8% | Most predictive model |
-| 5-Fold CV | 51.5% ± 1.7% | Robust estimate with uncertainty |
+| Model | IOp Share (Gini) | R² | Notes |
+|-------|------------------|-----|-------|
+| **Random Forest** | **52.6%** | 25.9% | Primary estimate |
+| Decision Tree | 55.4% | 28.3% | Interpretable (58 types) |
+| Gradient Boosting | 56.8% | 31.2% | sklearn implementation |
+| **XGBoost (tuned)** | **53.5%** | 34.5% | Optuna + SHAP analysis |
+| RF (5-fold CV) | 51.5% ± 1.7% | - | Robust estimate |
 
-### Top Circumstances Driving Inequality:
+### Top Circumstances Driving Inequality
+
+**Random Forest Variable Importance:**
 1. **Mother's education** (24.5%) - Most important factor
 2. **Region at age 14** (20.5%) - Geographic disparities
 3. **Sex** (19.4%) - Gender inequality
 4. **Father's education** (11.2%) - Parental background
 5. **Rural/urban at age 14** (7.9%) - Urban advantage
+
+**SHAP Analysis (XGBoost):**
+1. **Sex** (21.7%) - Gender gap in income
+2. **Region at age 14** (14.8%) - Geographic inequality
+3. **Mother's education** (12.9%) - Intergenerational transmission
+4. **Father's education** (12.5%) - Parental human capital
+5. **Birth cohort** (12.4%) - Generational effects
+
+**Key insight**: Both methods agree on the top circumstances (parental education, region, sex), but differ in their relative ranking. SHAP reveals sex has a more direct effect on income.
 
 **Comparison with literature**: Monroy-Gómez-Franco (2023) found IOp ≥ 48% using EMOVI 2017, which is consistent with our findings of ~52-57%.
 
@@ -149,8 +161,11 @@ circumstances:
 
 | Script | Purpose |
 |--------|---------|
+| `iop_analysis.py` | Main IOp pipeline (Decision Tree, RF, GB) |
+| `xgboost_shap_analysis.py` | XGBoost with Optuna tuning + SHAP analysis |
 | `xgboost_benchmark.py` | Alternative model with SHAP explanations |
 | `comparison_report.py` | Compare ctree vs XGBoost results |
+| `explore_variables.py` | Data exploration and variable inventory |
 
 ### Notebooks
 
@@ -197,12 +212,23 @@ The ctree visualization (`outputs/figures/ctree_final.png`) shows:
 - How the sample is divided into types
 - Outcome distributions for each type
 
-### 4. SHAP Summary
+### 4. SHAP Analysis (NEW)
 
-From XGBoost (`outputs/figures/shap_summary.png`):
-- Feature importance
-- Direction of effects (does higher parental education increase or decrease your income?)
-- Interactions between circumstances
+The SHAP (SHapley Additive exPlanations) analysis provides detailed interpretability for XGBoost:
+
+**Files generated:**
+- `outputs/figures/shap_summary.png` - Beeswarm plot showing feature effects
+- `outputs/figures/shap_importance_bar.png` - Bar plot of mean |SHAP| values
+- `outputs/figures/shap_dependence_*.png` - Dependence plots for top variables
+- `outputs/tables/shap_importance.csv` - Numerical importance values
+
+**What SHAP tells us:**
+- **Feature importance**: Which circumstances matter most (similar to variable importance)
+- **Direction of effects**: Does higher parental education increase or decrease income?
+- **Heterogeneity**: How do effects vary across the distribution?
+- **Interactions**: How do circumstances combine to affect outcomes?
+
+**Key finding**: Sex has the largest SHAP impact (21.7%), with females systematically receiving lower predicted incomes than males with the same circumstances
 
 ---
 

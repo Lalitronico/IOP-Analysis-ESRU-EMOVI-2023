@@ -1,0 +1,6 @@
+Model,IOp_Gini,IOp_R2,CV_R2_mean,CV_R2_std,N_Types,Notes
+Decision Tree,0.5538,0.2833,-,-,58,Interpretable partition into 58 types
+Random Forest,0.5263,0.2592,-,-,-,Ensemble of 200 trees
+Gradient Boosting,0.5681,0.3120,-,-,-,sklearn GradientBoostingRegressor
+RF (5-fold CV),0.5150,0.2580,-,-,-,Cross-validated estimate with uncertainty
+XGBoost (tuned),0.5355,0.3449,0.3108,0.0123,-,Optuna hyperparameter optimization + SHAP
