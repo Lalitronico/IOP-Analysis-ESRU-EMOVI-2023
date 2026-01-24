@@ -1,0 +1,93 @@
+# ============================================================================
+# Conda Environment for IOp Analysis - ESRU-EMOVI 2023
+# ============================================================================
+# Usage:
+#   conda env create -f environment.yml
+#   conda activate iop-analysis
+# ============================================================================
+
+name: iop-analysis
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python core
+  - python=3.11
+  - pip
+
+  # Python data science
+  - pandas>=2.0
+  - numpy>=1.24
+  - scipy>=1.10
+  - scikit-learn>=1.3
+
+  # Python ML/interpretability
+  - xgboost>=2.0
+  - shap>=0.43
+  - optuna>=3.4
+
+  # Python visualization
+  - matplotlib>=3.7
+  - seaborn>=0.12
+
+  # Python utilities
+  - pyyaml>=6.0
+  - tqdm>=4.65
+
+  # R core
+  - r-base>=4.3
+  - r-essentials
+
+  # R data manipulation
+  - r-tidyverse
+  - r-haven       # Read Stata files
+  - r-readxl      # Read Excel files
+  - r-yaml        # Read YAML config
+  - r-janitor     # Clean variable names
+  - r-labelled    # Handle labelled data
+
+  # R modeling - trees
+  - r-party       # cforest, ctree (original)
+  - r-partykit    # ctree (modern implementation)
+
+  # R inequality metrics
+  - r-ineq        # Gini, Theil, etc.
+  - r-acid        # Advanced inequality decomposition
+
+  # R interpretability
+  - r-pdp         # Partial dependence plots
+  - r-iml         # Interpretable ML (ICE plots)
+  - r-vip         # Variable importance
+
+  # R survey analysis
+  - r-survey      # Complex survey design
+
+  # R reporting
+  - r-rmarkdown
+  - r-knitr
+  - r-kableextra
+  - r-gt          # Tables
+  - r-ggplot2     # (included in tidyverse)
+  - r-patchwork   # Combine plots
+  - r-scales      # Scale transformations
+
+  # R utilities
+  - r-here        # Project-relative paths
+  - r-glue        # String interpolation
+  - r-assertthat  # Assertions
+  - r-tictoc      # Timing
+
+  # Jupyter for notebooks
+  - jupyter
+  - r-irkernel    # R kernel for Jupyter
+
+  # pip packages (not in conda)
+  - pip:
+    - optuna-dashboard>=0.14
+
+# ============================================================================
+# Alternative: If you prefer renv for R packages, use renv.lock instead
+# and install Python packages separately via pip
+# ============================================================================

@@ -1,0 +1,103 @@
+# ============================================================================
+# IOp Analysis Configuration - ESRU-EMOVI 2023
+# ============================================================================
+
+# Project paths
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  codebook: "data/codebook"
+  outputs: "outputs"
+  figures: "outputs/figures"
+  tables: "outputs/tables"
+  models: "outputs/models"
+
+# Data files
+data_files:
+  main:
+    entrevistado: "data/raw/emovi/Data/entrevistado_2023.dta"
+    hogar: "data/raw/emovi/Data/hogar_2023.dta"
+    ingreso: "data/raw/emovi/Data/ingreso_2017.dta"
+  financial_inclusion: "data/raw/inclusion_financiera/Base de datos/modulo_inclusion_financiera.dta"
+  dictionary: "data/raw/emovi/Diccionario ESRU EMOVI 2023.xlsx"
+
+# Random seeds for reproducibility
+seeds:
+  global: 42
+  cv: 123
+  bootstrap_start: 1001
+  n_bootstrap: 100
+
+# Cross-validation settings
+cv:
+  outer_folds: 5
+  inner_folds: 5
+  stratify_by: "income_decile"
+
+# ctree hyperparameters
+ctree:
+  mincriterion:
+    default: 0.95
+    grid: [0.90, 0.95, 0.99]
+  minsplit:
+    default: 100
+    grid: [50, 100, 150]
+  minbucket:
+    default: 50
+    grid: [30, 50, 75]
+  maxdepth:
+    default: 6
+    grid: [4, 6, 8]
+
+# cforest hyperparameters
+cforest:
+  ntree: 500
+  mtry: "sqrt"  # sqrt(n_circumstances) or integer
+  replace: false
+
+# XGBoost hyperparameters
+xgboost:
+  max_depth:
+    default: 5
+    grid: [3, 5, 7]
+  learning_rate:
+    default: 0.05
+    grid: [0.01, 0.05, 0.1]
+  n_estimators:
+    default: 300
+    grid: [100, 300, 500]
+  subsample:
+    default: 0.8
+    grid: [0.7, 0.8, 0.9]
+  colsample_bytree:
+    default: 0.8
+    grid: [0.7, 0.8, 0.9]
+  early_stopping_rounds: 50
+
+# IOp metrics to compute
+iop_metrics:
+  - gini_share
+  - mld_share
+  - r_squared
+  - absolute_gini
+  - absolute_mld
+
+# Sensitivity analysis settings
+sensitivity:
+  circumstance_sets:
+    - "minimal"      # Core circumstances only
+    - "extended"     # Include all circumstances
+    - "no_parental"  # Exclude parental variables
+  subsamples:
+    - "national"
+    - "urban"
+    - "rural"
+    - "male"
+    - "female"
+
+# Output settings
+output:
+  figure_format: "png"
+  figure_dpi: 300
+  table_format: "csv"
+  decimal_places: 4

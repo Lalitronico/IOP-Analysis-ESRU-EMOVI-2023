@@ -1,0 +1,359 @@
+---
+title: "Exploratory Data Analysis - ESRU-EMOVI 2023"
+subtitle: "Inequality of Opportunity Project"
+author: "IOp Analysis Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  fig.align = "center"
+)
+
+# Load setup
+source(here::here("src", "R", "00_setup.R"))
+```
+
+# 1. Introduction
+
+This notebook performs exploratory data analysis (EDA) on the ESRU-EMOVI 2023 social mobility survey. The goal is to:
+
+1. Understand the structure and quality of the data
+2. Identify candidate variables for IOp analysis
+3. Examine distributions of potential outcomes and circumstances
+4. Assess missing data patterns
+
+## 1.1 Load Data
+
+```{r load-data}
+# Load the cleaned data
+df <- readRDS(get_path(config$paths$data_processed, "entrevistado_clean.rds"))
+
+cat("Dataset dimensions:", nrow(df), "observations,", ncol(df), "variables\n")
+```
+
+# 2. Data Overview
+
+## 2.1 Variable Summary
+
+```{r var-summary}
+# Create variable summary
+var_summary <- tibble(
+  variable = names(df),
+  type = sapply(df, function(x) class(x)[1]),
+  n_unique = sapply(df, function(x) length(unique(x[!is.na(x)]))),
+  n_missing = sapply(df, function(x) sum(is.na(x))),
+  pct_missing = sapply(df, function(x) round(mean(is.na(x)) * 100, 2))
+) %>%
+  arrange(desc(pct_missing))
+
+# Show top variables by missingness
+var_summary %>%
+  head(20) %>%
+  kable(caption = "Variables with most missing values") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+## 2.2 Variable Types Distribution
+
+```{r var-types}
+var_summary %>%
+  count(type) %>%
+  ggplot(aes(x = reorder(type, n), y = n, fill = type)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.2) +
+  coord_flip() +
+  labs(
+    title = "Variable Types in EMOVI 2023",
+    x = "Type",
+    y = "Count"
+  ) +
+  theme_iop() +
+  theme(legend.position = "none")
+```
+
+# 3. Sample Characteristics
+
+## 3.1 Survey Design Variables
+
+```{r survey-design}
+# Look for survey design variables
+design_vars <- c("factor", "estrato", "upm", "folio")
+available_design <- design_vars[design_vars %in% names(df)]
+
+if (length(available_design) > 0) {
+  cat("Available survey design variables:", paste(available_design, collapse = ", "), "\n")
+
+  # Summary of weights if available
+  if ("factor" %in% names(df)) {
+    cat("\nSurvey weights summary:\n")
+    summary(df$factor)
+  }
+}
+```
+
+## 3.2 Geographic Distribution
+
+```{r geography}
+# Search for region/state variables
+geo_vars <- names(df)[grepl("region|estado|ent|zona|urban|rural", names(df), ignore.case = TRUE)]
+
+if (length(geo_vars) > 0) {
+  cat("Geographic variables found:", paste(geo_vars, collapse = ", "), "\n\n")
+
+  # Plot first geographic variable found
+  geo_var <- geo_vars[1]
+  df %>%
+    filter(!is.na(!!sym(geo_var))) %>%
+    count(!!sym(geo_var)) %>%
+    ggplot(aes(x = reorder(!!sym(geo_var), n), y = n)) +
+    geom_col(fill = "#0072B2") +
+    coord_flip() +
+    labs(
+      title = paste("Distribution by", geo_var),
+      x = NULL,
+      y = "Count"
+    ) +
+    theme_iop()
+} else {
+  cat("No obvious geographic variables found. Check variable labels.\n")
+}
+```
+
+# 4. Potential Outcome Variables
+
+## 4.1 Search for Income Variables
+
+```{r income-search}
+# Search for income-related variables
+income_vars <- names(df)[grepl("ingreso|income|decil|quintil|sueldo|salary",
+                               names(df), ignore.case = TRUE)]
+
+if (length(income_vars) > 0) {
+  cat("Potential income variables:\n")
+  for (v in income_vars) {
+    label <- attr(df[[v]], "label")
+    cat("  -", v, ":", ifelse(is.null(label), "(no label)", label), "\n")
+  }
+}
+```
+
+## 4.2 Search for Education Variables
+
+```{r education-search}
+# Search for education-related variables
+educ_vars <- names(df)[grepl("educ|escol|school|estudi|grado",
+                              names(df), ignore.case = TRUE)]
+
+if (length(educ_vars) > 0) {
+  cat("Potential education variables:\n")
+  for (v in educ_vars[1:min(15, length(educ_vars))]) {
+    label <- attr(df[[v]], "label")
+    cat("  -", v, ":", ifelse(is.null(label), "(no label)", label), "\n")
+  }
+}
+```
+
+## 4.3 Outcome Distributions
+
+```{r outcome-dist, eval=FALSE}
+# NOTE: Uncomment and modify once outcome variables are identified
+
+# Example for income decile
+# ggplot(df, aes(x = income_decile)) +
+#   geom_bar(fill = "#0072B2") +
+#   labs(title = "Distribution of Income Deciles",
+#        x = "Income Decile", y = "Count") +
+#   theme_iop()
+
+# Example for continuous income
+# ggplot(df, aes(x = log(income + 1))) +
+#   geom_histogram(bins = 50, fill = "#0072B2", alpha = 0.7) +
+#   labs(title = "Distribution of Log Income",
+#        x = "Log(Income + 1)", y = "Count") +
+#   theme_iop()
+```
+
+# 5. Potential Circumstance Variables
+
+## 5.1 Parental Background
+
+```{r parental-search}
+# Search for parental variables
+parent_vars <- names(df)[grepl("padre|madre|papa|mama|parent|progenitor",
+                                names(df), ignore.case = TRUE)]
+
+if (length(parent_vars) > 0) {
+  cat("Potential parental variables (first 20):\n")
+  for (v in parent_vars[1:min(20, length(parent_vars))]) {
+    label <- attr(df[[v]], "label")
+    cat("  -", v, ":", ifelse(is.null(label), "(no label)", label), "\n")
+  }
+}
+```
+
+## 5.2 Variables at Age 14
+
+```{r age14-search}
+# Search for retrospective variables (at age 14)
+age14_vars <- names(df)[grepl("14|catorce|cuando.*nino|childhood",
+                               names(df), ignore.case = TRUE)]
+
+if (length(age14_vars) > 0) {
+  cat("Potential 'at age 14' variables:\n")
+  for (v in age14_vars[1:min(20, length(age14_vars))]) {
+    label <- attr(df[[v]], "label")
+    cat("  -", v, ":", ifelse(is.null(label), "(no label)", label), "\n")
+  }
+}
+```
+
+## 5.3 Demographic Variables
+
+```{r demographic-search}
+# Search for demographic variables
+demo_vars <- names(df)[grepl("sexo|sex|genero|edad|age|nac|birth|etni|indigen|lengua|piel|skin",
+                              names(df), ignore.case = TRUE)]
+
+if (length(demo_vars) > 0) {
+  cat("Potential demographic variables:\n")
+  for (v in demo_vars[1:min(20, length(demo_vars))]) {
+    label <- attr(df[[v]], "label")
+    cat("  -", v, ":", ifelse(is.null(label), "(no label)", label), "\n")
+  }
+}
+```
+
+# 6. Missing Data Analysis
+
+## 6.1 Overall Missingness
+
+```{r missingness-overview}
+# Missingness by variable
+missing_summary <- var_summary %>%
+  mutate(
+    missing_category = case_when(
+      pct_missing == 0 ~ "No missing",
+      pct_missing < 5 ~ "< 5%",
+      pct_missing < 20 ~ "5-20%",
+      TRUE ~ "> 20%"
+    )
+  )
+
+missing_summary %>%
+  count(missing_category) %>%
+  ggplot(aes(x = missing_category, y = n, fill = missing_category)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.5) +
+  scale_fill_manual(values = c("No missing" = "#009E73", "< 5%" = "#56B4E9",
+                                "5-20%" = "#E69F00", "> 20%" = "#D55E00")) +
+  labs(
+    title = "Variables by Missingness Level",
+    x = "Missingness Category",
+    y = "Number of Variables"
+  ) +
+  theme_iop() +
+  theme(legend.position = "none")
+```
+
+## 6.2 High-Missing Variables
+
+```{r high-missing}
+# Variables with >20% missing
+high_missing <- var_summary %>%
+  filter(pct_missing > 20) %>%
+  arrange(desc(pct_missing))
+
+if (nrow(high_missing) > 0) {
+  high_missing %>%
+    head(20) %>%
+    ggplot(aes(x = reorder(variable, pct_missing), y = pct_missing)) +
+    geom_col(fill = "#D55E00") +
+    geom_hline(yintercept = 50, linetype = "dashed", color = "gray50") +
+    coord_flip() +
+    labs(
+      title = "Variables with >20% Missing",
+      x = NULL,
+      y = "Percent Missing"
+    ) +
+    theme_iop()
+}
+```
+
+# 7. Correlations Among Key Variables
+
+```{r correlations, eval=FALSE}
+# NOTE: Uncomment once key variables are identified
+
+# Example correlation analysis
+# key_vars <- c("income_decile", "education_years", "father_education",
+#               "mother_education", "wealth_index")
+#
+# df %>%
+#   select(all_of(key_vars)) %>%
+#   cor(use = "pairwise.complete.obs") %>%
+#   corrplot::corrplot(method = "color", type = "upper",
+#                      addCoef.col = "black", tl.col = "black")
+```
+
+# 8. Data Dictionary Export
+
+```{r export-dictionary}
+# Export variable inventory for manual classification
+inventory <- tibble(
+  variable = names(df),
+  label = sapply(names(df), function(v) {
+    lbl <- attr(df[[v]], "label")
+    if (is.null(lbl)) NA_character_ else lbl
+  }),
+  type = sapply(df, function(x) class(x)[1]),
+  n_unique = sapply(df, function(x) length(unique(x[!is.na(x)]))),
+  pct_missing = sapply(df, function(x) round(mean(is.na(x)) * 100, 2)),
+  # Add columns for manual classification
+  role = NA_character_,  # outcome, circumstance, effort, control, exclude
+  notes = NA_character_
+)
+
+# Save for manual editing
+write_csv(inventory, get_path(config$paths$tables, "variable_classification_template.csv"))
+cat("Saved variable classification template to tables folder\n")
+```
+
+# 9. Summary and Next Steps
+
+## 9.1 Key Findings
+
+Based on this EDA:
+
+1. **Sample size**: `r nrow(df)` observations
+2. **Variables**: `r ncol(df)` total variables
+3. **Missing data**: Varies by variable (see analysis above)
+
+## 9.2 Action Items
+
+1. [ ] Review variable labels and data dictionary
+2. [ ] Identify specific variable names for:
+   - Outcome (income, education, wealth)
+   - Circumstances (parental, demographic, at-age-14)
+3. [ ] Update `config/variable_roles.yaml` with actual variable names
+4. [ ] Decide on missing data strategy
+5. [ ] Proceed to preprocessing (`02_preprocess.R`)
+
+## 9.3 Session Info
+
+```{r session-info}
+sessionInfo()
+```

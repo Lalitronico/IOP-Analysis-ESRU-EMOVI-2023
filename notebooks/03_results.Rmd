@@ -1,0 +1,270 @@
+---
+title: "Final Results - Inequality of Opportunity Analysis"
+subtitle: "ESRU-EMOVI 2023"
+author: "IOp Analysis Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  fig.align = "center"
+)
+
+# Load setup
+source(here::here("src", "R", "00_setup.R"))
+```
+
+# Executive Summary
+
+This report presents the findings from our Inequality of Opportunity (IOp) analysis using the ESRU-EMOVI 2023 social mobility survey from Mexico.
+
+**Key Finding**: [TO BE FILLED] percent of total income inequality can be attributed to circumstances outside individuals' control.
+
+# 1. Main Results
+
+## 1.1 IOp Estimates
+
+```{r load-results}
+# Load saved results
+iop_results_file <- get_path(config$paths$tables, "iop_main_results.csv")
+
+if (file.exists(iop_results_file)) {
+  iop_results <- read_csv(iop_results_file)
+
+  kable(iop_results, caption = "Inequality of Opportunity Metrics") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+} else {
+  cat("IOp results not yet available. Run the modeling notebook first.\n")
+}
+```
+
+## 1.2 IOp Decomposition Visualization
+
+```{r iop-viz}
+# Load and display IOp decomposition figure
+iop_fig <- get_path(config$paths$figures, "iop_decomposition.png")
+
+if (file.exists(iop_fig)) {
+  knitr::include_graphics(iop_fig)
+} else {
+  cat("IOp decomposition figure not yet available.\n")
+}
+```
+
+# 2. Circumstance Importance
+
+## 2.1 Variable Importance Rankings
+
+```{r varimp-table}
+varimp_file <- get_path(config$paths$tables, "varimp_bootstrap_ci.csv")
+
+if (file.exists(varimp_file)) {
+  varimp <- read_csv(varimp_file)
+
+  varimp %>%
+    mutate(
+      importance_pct = round(mean_importance / max(mean_importance) * 100, 1),
+      ci = paste0("[", round(ci_lower, 4), ", ", round(ci_upper, 4), "]")
+    ) %>%
+    select(Variable = variable, `Importance (%)` = importance_pct,
+           `95% CI` = ci) %>%
+    kable(caption = "Circumstance Importance Rankings (cforest)") %>%
+    kable_styling()
+} else {
+  cat("Variable importance results not yet available.\n")
+}
+```
+
+## 2.2 Variable Importance Plot
+
+```{r varimp-plot}
+varimp_fig <- get_path(config$paths$figures, "varimp_cforest.png")
+
+if (file.exists(varimp_fig)) {
+  knitr::include_graphics(varimp_fig)
+} else {
+  cat("Variable importance plot not yet available.\n")
+}
+```
+
+# 3. Method Comparison
+
+## 3.1 ctree vs XGBoost
+
+```{r comparison-table}
+comparison_file <- get_path(config$paths$tables, "model_comparison.csv")
+
+if (file.exists(comparison_file)) {
+  comparison <- read_csv(comparison_file)
+
+  kable(comparison, caption = "Method Comparison: ctree/cforest vs XGBoost") %>%
+    kable_styling()
+} else {
+  cat("Comparison results not yet available.\n")
+}
+```
+
+## 3.2 Variable Importance Comparison
+
+```{r comparison-plot}
+comparison_fig <- get_path(config$paths$figures, "varimp_comparison.png")
+
+if (file.exists(comparison_fig)) {
+  knitr::include_graphics(comparison_fig)
+} else {
+  cat("Comparison plot not yet available.\n")
+}
+```
+
+# 4. Interpretability Analysis
+
+## 4.1 Partial Dependence Plots
+
+```{r pdp-grid}
+pdp_fig <- get_path(config$paths$figures, "pdp_grid.png")
+
+if (file.exists(pdp_fig)) {
+  knitr::include_graphics(pdp_fig)
+} else {
+  cat("PDP grid not yet available.\n")
+}
+```
+
+## 4.2 SHAP Summary (XGBoost)
+
+```{r shap-summary}
+shap_fig <- get_path(config$paths$figures, "shap_summary.png")
+
+if (file.exists(shap_fig)) {
+  knitr::include_graphics(shap_fig)
+} else {
+  cat("SHAP summary not yet available.\n")
+}
+```
+
+# 5. Type Analysis
+
+## 5.1 Type Distribution
+
+```{r type-dist}
+type_fig <- get_path(config$paths$figures, "type_distribution.png")
+
+if (file.exists(type_fig)) {
+  knitr::include_graphics(type_fig)
+} else {
+  cat("Type distribution plot not yet available.\n")
+}
+```
+
+## 5.2 Ctree Visualization
+
+```{r ctree-plot}
+ctree_fig <- get_path(config$paths$figures, "ctree_final.png")
+
+if (file.exists(ctree_fig)) {
+  knitr::include_graphics(ctree_fig)
+} else {
+  cat("ctree plot not yet available.\n")
+}
+```
+
+# 6. Sensitivity Analysis
+
+## 6.1 Alternative Circumstance Sets
+
+```{r sensitivity}
+# Placeholder for sensitivity analysis results
+cat("Sensitivity analysis results to be added.\n")
+```
+
+## 6.2 Subgroup Analysis
+
+```{r subgroups}
+# Placeholder for subgroup analysis
+cat("Subgroup analysis results to be added.\n")
+```
+
+# 7. Comparison with Literature
+
+## 7.1 Mexico IOp Estimates
+
+| Study | Data | IOp Estimate | Method |
+|-------|------|--------------|--------|
+| Monroy-Gómez-Franco (2023) | EMOVI 2017 | ≥48% | ctree/cforest |
+| Plassot et al. (2022) | EMOVI | ~40-50% | Machine learning |
+| **This study** | EMOVI 2023 | [TBD]% | ctree/cforest + XGBoost |
+
+## 7.2 International Comparison
+
+- Latin America average: ~30-50% (varies by country)
+- European countries: ~20-30% (generally lower)
+- Mexico consistently shows higher IOp due to persistent social stratification
+
+# 8. Policy Implications
+
+Based on our findings, the most important circumstances driving inequality are:
+
+1. **[TO BE FILLED]** - Explains X% of IOp
+2. **[TO BE FILLED]** - Explains Y% of IOp
+3. **[TO BE FILLED]** - Explains Z% of IOp
+
+## Policy Recommendations
+
+1. [TO BE DEVELOPED based on results]
+2. [TO BE DEVELOPED based on results]
+3. [TO BE DEVELOPED based on results]
+
+# 9. Technical Notes
+
+## 9.1 Data
+
+- **Source**: ESRU-EMOVI 2023
+- **Sample size**: [N observations]
+- **Missing data treatment**: [Description]
+
+## 9.2 Methods
+
+- **ctree**: Conditional inference trees with permutation-based splitting
+- **cforest**: Ensemble of ctrees with conditional variable importance
+- **XGBoost**: Gradient boosted trees with SHAP explanations
+
+## 9.3 Reproducibility
+
+All code and data are available in this repository. To reproduce:
+
+```bash
+# 1. Set up environment
+conda env create -f environment.yml
+conda activate iop-analysis
+
+# 2. Run R pipeline
+Rscript src/R/01_load_validate.R
+Rscript src/R/02_preprocess.R
+# ... etc.
+
+# 3. Run Python benchmark
+python src/python/xgboost_benchmark.py
+```
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```
+
+---
+
+*Report generated on `r Sys.Date()`*

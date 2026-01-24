@@ -1,0 +1,392 @@
+# ============================================================================
+# Variable Role Classification - ESRU-EMOVI 2023
+# ============================================================================
+# Updated with actual EMOVI 2023 variable names from data dictionary
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# OUTCOMES - What we measure inequality of
+# ----------------------------------------------------------------------------
+outcomes:
+  primary:
+    - name: "ln_ingc_pc"
+      description: "Log per-capita household income (imputed)"
+      source_var: "ingc_pc"
+      type: "continuous"
+      transform: "log"
+      notes: "Primary outcome - continuous income measure"
+
+    - name: "educ"
+      description: "Respondent's education level (4 categories)"
+      source_var: "educ"
+      type: "ordinal"
+      categories: [1, 2, 3, 4]  # Sin/Primaria, Secundaria, Preparatoria, Universidad
+      notes: "Human capital outcome"
+
+  secondary:
+    - name: "clase"
+      description: "Respondent's occupational class (6 categories)"
+      source_var: "clase"
+      type: "categorical"
+      notes: "Labor market outcome - 33% missing (non-workers)"
+
+    - name: "wealth_index_current"
+      description: "Current wealth index (constructed from assets)"
+      source_vars:
+        - "p96a"   # Estufa
+        - "p96b"   # Lavadora
+        - "p96c"   # Refrigerador
+        - "p96d"   # Teléfono
+        - "p96e"   # TV
+        - "p96f"   # Tostador
+        - "p96g"   # Aspiradora
+        - "p96h"   # TV cable
+        - "p96i"   # Microondas
+        - "p96j"   # Celular
+        - "p96k"   # Computadora
+        - "p96l"   # Internet
+      type: "continuous"
+      construct: true
+
+    - name: "subjective_mobility"
+      description: "Subjective social position change (current vs age 14)"
+      source_vars:
+        - "p103"   # Position current (1-10)
+        - "p104"   # Position at age 14 (1-10)
+      type: "continuous"
+      construct: true
+      derivation: "p103 - p104"
+
+# ----------------------------------------------------------------------------
+# CIRCUMSTANCES - Factors OUTSIDE individual control
+# ----------------------------------------------------------------------------
+circumstances:
+  # Parental background (at age 14)
+  parental:
+    - name: "educp"
+      description: "Father's education level (4 categories)"
+      source_var: "educp"
+      type: "categorical"
+      categories: [1, 2, 3, 4]  # Sin/Prim, Sec, Prep, Uni
+      missing_pct: 18.9
+      impute: true
+      impute_method: "mode"
+
+    - name: "educm"
+      description: "Mother's education level (4 categories)"
+      source_var: "educm"
+      type: "categorical"
+      categories: [1, 2, 3, 4]
+      missing_pct: 10.3
+      impute: true
+      impute_method: "mode"
+
+    - name: "clasep"
+      description: "Father's occupational class (6 categories)"
+      source_var: "clasep"
+      type: "categorical"
+      missing_pct: 15.6
+      impute: true
+      impute_method: "mode"
+
+    - name: "clasem"
+      description: "Mother's occupational class (6 categories)"
+      source_var: "clasem"
+      type: "categorical"
+      missing_pct: 61.7
+      notes: "High missing - many mothers not working"
+      impute: false
+      use_in_analysis: false  # Too much missing
+
+    - name: "p40"
+      description: "Who was main economic provider at age 14"
+      source_var: "p40"
+      type: "categorical"
+      categories: [1, 2, 3, 4, 5]  # Padre, Madre, Ambos, Otro, NS
+
+  # Demographic (innate/assigned at birth)
+  demographic:
+    - name: "sexo"
+      description: "Biological sex (1=Male, 2=Female)"
+      source_var: "sexo"
+      type: "binary"
+      categories:
+        1: "Male"
+        2: "Female"
+      missing_pct: 0.0
+
+    - name: "indigenous"
+      description: "Speaks indigenous language"
+      source_var: "p111"
+      type: "binary"
+      categories:
+        1: "Yes"
+        2: "No"
+      missing_pct: 0.0
+
+    - name: "skin_tone"
+      description: "Self-reported skin tone (PERLA scale 1-11)"
+      source_var: "p112"
+      type: "ordinal"
+      range: [1, 11]
+      missing_pct: 0.0
+      notes: "1=lightest, 11=darkest"
+
+    - name: "region_14"
+      description: "Region of residence at age 14 (5 regions)"
+      source_var: "region_14"
+      type: "categorical"
+      categories:
+        1: "Norte"
+        2: "Centro-Norte"
+        3: "Centro"
+        4: "Centro-Sur"
+        5: "Sur"
+      missing_pct: 0.3
+
+    - name: "cohorte"
+      description: "Birth cohort (age group)"
+      source_var: "cohorte"
+      type: "categorical"
+      notes: "Controls for macro-level trends across generations"
+
+    - name: "rural_14"
+      description: "Rural/urban status at age 14"
+      source_var: "p21"
+      type: "categorical"
+      categories:
+        1: "Ciudad"
+        2: "Pueblo"
+        3: "Ranchería"
+        4: "NS"
+      missing_pct: 0.0
+
+  # Household of origin (at age 14)
+  household_origin:
+    - name: "floor_material_14"
+      description: "Floor material at age 14 (proxy for housing quality)"
+      source_var: "p25"
+      type: "ordinal"
+      categories:
+        1: "Tierra"       # Dirt
+        2: "Cemento"      # Cement
+        3: "Otro material" # Tile/wood/other
+      missing_pct: 0.0
+
+    - name: "water_14"
+      description: "Had piped water inside home at age 14"
+      source_var: "p26a"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "electricity_14"
+      description: "Had electricity at age 14"
+      source_var: "p26b"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "bathroom_14"
+      description: "Had bathroom inside home at age 14"
+      source_var: "p26c"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "boiler_14"
+      description: "Had water heater at age 14"
+      source_var: "p26d"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "domestic_help_14"
+      description: "Had paid domestic help at age 14"
+      source_var: "p26e"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "housing_type_14"
+      description: "Type of housing at age 14"
+      source_var: "p28"
+      type: "categorical"
+      missing_pct: 0.0
+
+    - name: "n_cars_14"
+      description: "Number of cars at age 14"
+      source_var: "p30"
+      type: "ordinal"
+      missing_pct: 0.0
+
+    - name: "n_persons_hh_14"
+      description: "Number of persons in household at age 14"
+      source_var: "p22"
+      type: "continuous"
+      missing_pct: 0.0
+
+    - name: "n_rooms_14"
+      description: "Number of rooms in dwelling at age 14"
+      source_var: "p23"
+      type: "continuous"
+      missing_pct: 0.0
+
+    # Assets at age 14 (for wealth index construction)
+    - name: "stove_14"
+      source_var: "p31a"
+      type: "binary"
+    - name: "washer_14"
+      source_var: "p31b"
+      type: "binary"
+    - name: "fridge_14"
+      source_var: "p31c"
+      type: "binary"
+    - name: "phone_14"
+      source_var: "p31d"
+      type: "binary"
+    - name: "tv_14"
+      source_var: "p31e"
+      type: "binary"
+    - name: "microwave_14"
+      source_var: "p31i"
+      type: "binary"
+    - name: "computer_14"
+      source_var: "p31k"
+      type: "binary"
+    - name: "internet_14"
+      source_var: "p31l"
+      type: "binary"
+
+  # Financial background at age 14
+  financial_origin:
+    - name: "savings_14"
+      description: "Family had savings account at age 14"
+      source_var: "p32e"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "credit_card_14"
+      description: "Family had credit card at age 14"
+      source_var: "p32f"
+      type: "binary"
+      missing_pct: 0.0
+
+    - name: "business_owner_14"
+      description: "Family owned a business at age 14"
+      source_var: "p32o"
+      type: "binary"
+      missing_pct: 0.0
+
+# ----------------------------------------------------------------------------
+# CONSTRUCTED INDICES
+# ----------------------------------------------------------------------------
+indices:
+  wealth_index_14:
+    description: "Household wealth index at age 14 (PCA of assets)"
+    method: "pca"
+    components:
+      - "p31a"   # Estufa
+      - "p31b"   # Lavadora
+      - "p31c"   # Refrigerador
+      - "p31d"   # Teléfono
+      - "p31e"   # TV
+      - "p31f"   # Tostador
+      - "p31g"   # Aspiradora
+      - "p31h"   # TV cable
+      - "p31i"   # Microondas
+      - "p31k"   # Computadora
+      - "p31l"   # Internet
+      - "p30"    # Número de autos
+    standardize: true
+    scale: [0, 100]
+
+  housing_index_14:
+    description: "Housing quality index at age 14"
+    method: "sum"
+    components:
+      - source: "p25"
+        scoring: {1: 0, 2: 1, 3: 2}  # Floor material
+      - source: "p26a"
+        scoring: {1: 1, 2: 0}        # Water
+      - source: "p26b"
+        scoring: {1: 1, 2: 0}        # Electricity
+      - source: "p26c"
+        scoring: {1: 1, 2: 0}        # Bathroom
+      - source: "p26d"
+        scoring: {1: 1, 2: 0}        # Boiler
+    standardize: true
+    scale: [0, 100]
+
+  services_index_14:
+    description: "Neighborhood services at age 14"
+    method: "sum"
+    components:
+      - "p33a"   # Alumbrado público
+      - "p33b"   # Escuelas/bibliotecas
+      - "p33c"   # Centros médicos
+      - "p33d"   # Guarderías
+      - "p33e"   # Esparcimiento
+      - "p33f"   # Seguridad
+      - "p33g"   # Transporte
+      - "p33h"   # Limpieza calles
+    standardize: true
+
+# ----------------------------------------------------------------------------
+# SURVEY DESIGN
+# ----------------------------------------------------------------------------
+survey_design:
+  weight_var: "factor"
+  strata_var: "est"
+  id_var: "index"
+  notes: "Use factor for population-weighted estimates"
+
+# ----------------------------------------------------------------------------
+# CIRCUMSTANCE SETS FOR ANALYSIS
+# ----------------------------------------------------------------------------
+circumstance_sets:
+  minimal:
+    description: "Core circumstances only (5 variables)"
+    variables:
+      - "educp"
+      - "educm"
+      - "sexo"
+      - "indigenous"
+      - "region_14"
+
+  standard:
+    description: "Standard set following Brunori et al. (9 variables)"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+
+  extended:
+    description: "Full circumstance set (15+ variables)"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+      - "floor_material_14"
+      - "water_14"
+      - "bathroom_14"
+      - "n_cars_14"
+      - "wealth_index_14"
+      - "housing_index_14"
+
+  no_parental:
+    description: "Exclude parental education (robustness check)"
+    variables:
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "wealth_index_14"

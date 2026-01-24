@@ -1,0 +1,469 @@
+---
+title: "IOp Modeling Pipeline - ESRU-EMOVI 2023"
+subtitle: "Conditional Inference Trees and Forests"
+author: "IOp Analysis Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 8,
+  fig.align = "center",
+  cache = TRUE
+)
+
+# Load setup and scripts
+source(here::here("src", "R", "00_setup.R"))
+source(here::here("src", "R", "utils", "iop_functions.R"))
+```
+
+# 1. Introduction
+
+This notebook implements the full IOp modeling pipeline using:
+
+1. **Conditional Inference Trees (ctree)** - For creating interpretable type partitions
+2. **Conditional Inference Forests (cforest)** - For robust variable importance
+3. **IOp metrics** - Gini-based, MLD-based, and R² measures
+
+## 1.1 Load Data
+
+```{r load-data}
+# Load preprocessed data
+df <- readRDS(get_path(config$paths$data_processed, "entrevistado_clean.rds"))
+
+cat("Loaded data:", nrow(df), "observations,", ncol(df), "variables\n")
+```
+
+## 1.2 Define Variables
+
+**IMPORTANT**: Update these variable names based on your EDA and the actual EMOVI codebook.
+
+```{r define-vars}
+# ============================================================================
+# UPDATE THESE VARIABLE NAMES WITH ACTUAL EMOVI 2023 VARIABLES
+# ============================================================================
+
+# Outcome variable
+OUTCOME_VAR <- "income_decile"  # PLACEHOLDER - update with actual var
+
+# Circumstance variables
+CIRCUMSTANCE_VARS <- c(
+  # Parental background
+  "father_education",    # PLACEHOLDER
+  "mother_education",    # PLACEHOLDER
+  "father_occupation",   # PLACEHOLDER
+
+  # Demographics
+  "sex",                 # PLACEHOLDER
+  "ethnicity",           # PLACEHOLDER
+  "skin_tone",           # PLACEHOLDER
+  "birth_region",        # PLACEHOLDER
+  "birth_cohort",        # PLACEHOLDER
+
+  # Household at 14
+  "n_books_14"           # PLACEHOLDER
+)
+
+# Survey weight
+WEIGHT_VAR <- "factor"  # PLACEHOLDER
+
+# Print status
+cat("Configuration:\n")
+cat("  Outcome:", OUTCOME_VAR, "\n")
+cat("  Circumstances:", length(CIRCUMSTANCE_VARS), "variables\n")
+cat("  Weight:", WEIGHT_VAR, "\n")
+```
+
+## 1.3 Prepare Analysis Data
+
+```{r prepare-data, eval=FALSE}
+# NOTE: This chunk will fail until variable names are updated
+# Uncomment and run once variables are defined
+
+# Check if variables exist
+# all_vars <- c(OUTCOME_VAR, CIRCUMSTANCE_VARS)
+# missing_vars <- all_vars[!all_vars %in% names(df)]
+#
+# if (length(missing_vars) > 0) {
+#   stop("Missing variables: ", paste(missing_vars, collapse = ", "),
+#        "\n\nPlease update variable names in the 'Define Variables' chunk above.")
+# }
+#
+# # Prepare analysis dataset
+# df_analysis <- df %>%
+#   select(all_of(c(OUTCOME_VAR, CIRCUMSTANCE_VARS, WEIGHT_VAR))) %>%
+#   drop_na(all_of(OUTCOME_VAR))
+#
+# cat("Analysis dataset:", nrow(df_analysis), "observations\n")
+# cat("Complete cases:", sum(complete.cases(df_analysis)), "\n")
+```
+
+# 2. Conditional Inference Tree (ctree)
+
+## 2.1 Model Formula
+
+```{r ctree-formula, eval=FALSE}
+# Create formula
+# formula_str <- paste(OUTCOME_VAR, "~", paste(CIRCUMSTANCE_VARS, collapse = " + "))
+# ctree_formula <- as.formula(formula_str)
+# cat("Formula:", formula_str, "\n")
+```
+
+## 2.2 Hyperparameter Tuning
+
+```{r ctree-tuning, eval=FALSE}
+# Parameter grid
+# param_grid <- expand.grid(
+#   mincriterion = c(0.90, 0.95, 0.99),
+#   minsplit = c(100),
+#   minbucket = c(50),
+#   maxdepth = c(4, 6, 8)
+# )
+#
+# cat("Testing", nrow(param_grid), "parameter combinations\n")
+#
+# # Cross-validation
+# set.seed(config$seeds$cv)
+# cv_results <- list()
+#
+# for (i in 1:nrow(param_grid)) {
+#   params <- param_grid[i, ]
+#
+#   ctrl <- partykit::ctree_control(
+#     mincriterion = params$mincriterion,
+#     minsplit = params$minsplit,
+#     minbucket = params$minbucket,
+#     maxdepth = params$maxdepth
+#   )
+#
+#   # 5-fold CV
+#   folds <- caret::createFolds(df_analysis[[OUTCOME_VAR]], k = 5)
+#   fold_r2 <- numeric(5)
+#
+#   for (fold in 1:5) {
+#     train_idx <- unlist(folds[-fold])
+#     test_idx <- folds[[fold]]
+#
+#     model <- partykit::ctree(
+#       ctree_formula,
+#       data = df_analysis[train_idx, ],
+#       control = ctrl
+#     )
+#
+#     preds <- predict(model, newdata = df_analysis[test_idx, ])
+#     actual <- df_analysis[[OUTCOME_VAR]][test_idx]
+#
+#     fold_r2[fold] <- 1 - sum((actual - preds)^2) / sum((actual - mean(actual))^2)
+#   }
+#
+#   cv_results[[i]] <- data.frame(
+#     mincriterion = params$mincriterion,
+#     maxdepth = params$maxdepth,
+#     mean_r2 = mean(fold_r2),
+#     sd_r2 = sd(fold_r2)
+#   )
+# }
+#
+# cv_results_df <- bind_rows(cv_results) %>%
+#   arrange(desc(mean_r2))
+#
+# kable(cv_results_df, caption = "Cross-Validation Results") %>%
+#   kable_styling()
+```
+
+## 2.3 Fit Final ctree Model
+
+```{r ctree-fit, eval=FALSE}
+# Get best parameters
+# best_params <- cv_results_df[1, ]
+#
+# cat("Best parameters:\n")
+# cat("  mincriterion:", best_params$mincriterion, "\n")
+# cat("  maxdepth:", best_params$maxdepth, "\n")
+# cat("  CV R²:", round(best_params$mean_r2, 4), "\n")
+#
+# # Fit final model
+# ctrl_final <- partykit::ctree_control(
+#   mincriterion = best_params$mincriterion,
+#   minsplit = 100,
+#   minbucket = 50,
+#   maxdepth = best_params$maxdepth
+# )
+#
+# ctree_model <- partykit::ctree(
+#   ctree_formula,
+#   data = df_analysis,
+#   control = ctrl_final
+# )
+#
+# cat("\nTree structure:\n")
+# print(ctree_model)
+```
+
+## 2.4 Visualize ctree
+
+```{r ctree-plot, eval=FALSE, fig.width=14, fig.height=10}
+# Plot the tree
+# plot(ctree_model,
+#      type = "simple",
+#      inner_panel = node_inner,
+#      terminal_panel = node_boxplot,
+#      tp_args = list(id = FALSE, fill = "lightblue"))
+```
+
+# 3. Conditional Inference Forest (cforest)
+
+## 3.1 Fit cforest Model
+
+```{r cforest-fit, eval=FALSE}
+# Set up control (using party package for unbiased variable importance)
+# library(party)
+#
+# ctrl_forest <- cforest_unbiased(ntree = 500)
+#
+# cat("Fitting cforest with 500 trees...\n")
+# tic()
+#
+# cforest_model <- cforest(
+#   ctree_formula,
+#   data = df_analysis,
+#   controls = ctrl_forest
+# )
+#
+# toc()
+```
+
+## 3.2 Variable Importance
+
+```{r varimp, eval=FALSE}
+# Compute conditional variable importance
+# cat("Computing conditional variable importance...\n")
+# tic()
+#
+# varimp_conditional <- varimp(cforest_model, conditional = TRUE)
+#
+# toc()
+#
+# # Create importance table
+# varimp_df <- data.frame(
+#   variable = names(varimp_conditional),
+#   importance = varimp_conditional
+# ) %>%
+#   arrange(desc(importance))
+#
+# kable(varimp_df, caption = "Variable Importance (Conditional)") %>%
+#   kable_styling()
+```
+
+## 3.3 Plot Variable Importance
+
+```{r varimp-plot, eval=FALSE}
+# varimp_df %>%
+#   mutate(variable = fct_reorder(variable, importance)) %>%
+#   ggplot(aes(x = importance, y = variable)) +
+#   geom_point(size = 3, color = "#0072B2") +
+#   geom_segment(aes(xend = 0, yend = variable), color = "#0072B2") +
+#   geom_vline(xintercept = 0, linetype = "dashed") +
+#   labs(
+#     title = "Conditional Variable Importance (cforest)",
+#     x = "Importance (reduction in MSE)",
+#     y = NULL
+#   ) +
+#   theme_iop()
+```
+
+## 3.4 Bootstrap Variable Importance
+
+```{r varimp-bootstrap, eval=FALSE}
+# n_boot <- 50  # Reduced for speed; use 100 for final analysis
+#
+# cat("Bootstrapping variable importance (", n_boot, " replications)...\n")
+# tic()
+#
+# boot_results <- list()
+#
+# for (b in 1:n_boot) {
+#   if (b %% 10 == 0) cat("  Iteration", b, "\n")
+#
+#   set.seed(SEEDS$bootstrap[b])
+#   boot_idx <- sample(1:nrow(df_analysis), replace = TRUE)
+#   boot_data <- df_analysis[boot_idx, ]
+#
+#   boot_model <- cforest(ctree_formula, data = boot_data, controls = ctrl_forest)
+#   boot_vi <- varimp(boot_model, conditional = TRUE)
+#
+#   boot_results[[b]] <- boot_vi
+# }
+#
+# toc()
+#
+# # Combine and summarize
+# boot_matrix <- do.call(rbind, boot_results)
+#
+# varimp_boot_summary <- data.frame(
+#   variable = colnames(boot_matrix),
+#   mean_importance = colMeans(boot_matrix),
+#   sd_importance = apply(boot_matrix, 2, sd),
+#   ci_lower = apply(boot_matrix, 2, quantile, 0.025),
+#   ci_upper = apply(boot_matrix, 2, quantile, 0.975)
+# ) %>%
+#   arrange(desc(mean_importance))
+#
+# kable(varimp_boot_summary, digits = 4,
+#       caption = "Variable Importance with Bootstrap CIs") %>%
+#   kable_styling()
+```
+
+# 4. IOp Metrics
+
+## 4.1 Calculate IOp Indices
+
+```{r iop-metrics, eval=FALSE}
+# Load IOp functions
+# source(here::here("src", "R", "05_iop_metrics.R"))
+#
+# # Get predictions from ctree
+# type_means <- predict(ctree_model, type = "response")
+# types <- predict(ctree_model, type = "node")
+# observed <- df_analysis[[OUTCOME_VAR]]
+#
+# # Calculate metrics
+# iop_gini <- calculate_iop_share(observed, type_means, metric = "gini")
+# iop_mld <- calculate_iop_share(observed, type_means, metric = "mld")
+# iop_rsq <- calculate_iop_rsq(observed, type_means)
+#
+# # Create summary table
+# iop_summary <- data.frame(
+#   Metric = c("IOp Share (Gini)", "IOp Share (MLD)", "IOp Share (R²)",
+#              "Total Gini", "Total MLD", "Number of Types"),
+#   Value = c(iop_gini$iop_share, iop_mld$iop_share, iop_rsq,
+#             iop_gini$ineq_total, iop_mld$ineq_total, length(unique(types)))
+# )
+#
+# kable(iop_summary, digits = 4, caption = "IOp Metrics Summary") %>%
+#   kable_styling()
+```
+
+## 4.2 MLD Decomposition
+
+```{r mld-decomposition, eval=FALSE}
+# mld_decomp <- decompose_mld(observed, types)
+#
+# cat("MLD Decomposition:\n")
+# cat("  Total MLD:", round(mld_decomp$mld_total, 4), "\n")
+# cat("  Between-type MLD:", round(mld_decomp$mld_between, 4), "\n")
+# cat("  Within-type MLD:", round(mld_decomp$mld_within, 4), "\n")
+# cat("  IOp Share:", round(mld_decomp$iop_share * 100, 1), "%\n")
+```
+
+## 4.3 Visualize IOp
+
+```{r iop-viz, eval=FALSE}
+# # IOp decomposition bar chart
+# iop_plot_data <- data.frame(
+#   Component = c("Between-Type\n(IOp)", "Within-Type\n(Residual)"),
+#   Value = c(mld_decomp$mld_between, mld_decomp$mld_within),
+#   Share = c(mld_decomp$iop_share, 1 - mld_decomp$iop_share)
+# )
+#
+# ggplot(iop_plot_data, aes(x = "", y = Share, fill = Component)) +
+#   geom_col(width = 0.5) +
+#   geom_text(aes(label = paste0(round(Share * 100, 1), "%")),
+#             position = position_stack(vjust = 0.5), size = 5) +
+#   coord_flip() +
+#   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
+#   labs(
+#     title = "Inequality Decomposition",
+#     subtitle = "Share of total inequality due to circumstances vs. residual",
+#     x = NULL, y = "Share of Total Inequality"
+#   ) +
+#   theme_iop() +
+#   theme(axis.text.y = element_blank())
+```
+
+# 5. Sensitivity Analysis
+
+## 5.1 Different Circumstance Sets
+
+```{r sensitivity-sets, eval=FALSE}
+# # Define alternative circumstance sets
+# circumstance_sets <- list(
+#   minimal = c("father_education", "mother_education", "sex"),
+#   standard = CIRCUMSTANCE_VARS,
+#   extended = c(CIRCUMSTANCE_VARS, "additional_var1", "additional_var2")  # Add more
+# )
+#
+# sensitivity_results <- list()
+#
+# for (set_name in names(circumstance_sets)) {
+#   vars <- circumstance_sets[[set_name]]
+#   vars <- vars[vars %in% names(df_analysis)]  # Keep only existing vars
+#
+#   if (length(vars) < 2) next
+#
+#   formula_sens <- as.formula(paste(OUTCOME_VAR, "~", paste(vars, collapse = " + ")))
+#
+#   model_sens <- partykit::ctree(formula_sens, data = df_analysis,
+#                                  control = ctrl_final)
+#
+#   preds <- predict(model_sens, type = "response")
+#   iop <- calculate_iop_share(df_analysis[[OUTCOME_VAR]], preds, metric = "gini")
+#
+#   sensitivity_results[[set_name]] <- data.frame(
+#     circumstance_set = set_name,
+#     n_vars = length(vars),
+#     iop_share = iop$iop_share
+#   )
+# }
+#
+# sensitivity_df <- bind_rows(sensitivity_results)
+# kable(sensitivity_df, digits = 4, caption = "Sensitivity to Circumstance Set") %>%
+#   kable_styling()
+```
+
+# 6. Save Results
+
+```{r save-results, eval=FALSE}
+# # Save models
+# saveRDS(ctree_model, get_path(config$paths$models, "ctree_final.rds"))
+# saveRDS(cforest_model, get_path(config$paths$models, "cforest_final.rds"))
+#
+# # Save tables
+# save_table(cv_results_df, "ctree_cv_results")
+# save_table(varimp_boot_summary, "varimp_bootstrap_ci")
+# save_table(iop_summary, "iop_main_results")
+#
+# cat("All results saved successfully.\n")
+```
+
+# 7. Summary
+
+## Key Results
+
+**NOTE**: This section will be populated once the analysis runs with actual data.
+
+- **IOp Share (Gini)**: [TO BE FILLED]
+- **IOp Share (MLD)**: [TO BE FILLED]
+- **Top 3 Circumstances**: [TO BE FILLED]
+
+## Next Steps
+
+1. Run XGBoost benchmark (`src/python/xgboost_benchmark.py`)
+2. Generate comparison report
+3. Create final visualizations (`03_results.Rmd`)
+
+```{r session-info}
+sessionInfo()
+```
