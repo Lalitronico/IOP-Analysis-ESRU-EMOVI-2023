@@ -1,0 +1,297 @@
+variable,label,dtype,n_unique,pct_missing
+index,Folio identificador,int16,17843,0.0
+rururb,Tipo de poblamiento,int8,2,0.0
+entidad,Entidad,int8,32,0.0
+sexo,Sexo,int8,2,0.0
+edad,Edad,int8,40,0.0
+tamhog,Número de integrantes del hogar,float64,10,0.0
+jefe_hogar,Jefatura del hogar,float32,2,0.0
+cohorte,Grupo de edad,float32,4,0.0
+p8,"Asiste (de manera presencial, línea o híbrida) actualmente a la escuela?",int16,3,0.0
+p9,¿Cuál es el último nivel que alcanzó/asiste en la escuela?,int8,14,0.0
+p10,¿Cuál es el último grado o año que alcanzó en este nivel?,float64,7,2.0
+p16,¿Actualmente usted…?,int8,7,0.0
+p17,"Cuando usted tiene problemas de salud, ¿en dónde se atiende con mayor frecuencia",int16,9,0.0
+p18_1,¿Está afiliado(a) en el Seguro Social (IMSS)?,int8,2,0.0
+p18_2,¿Está afiliado(a) ISSSTE o ISSSTE estatal?,int8,2,0.0
+p18_3,"¿Está afiliado(a) Pemex, Defensa o Marina?",int8,2,0.0
+p18_4,¿Está afiliado(a) en el Seguro Popular o INSABI (Instituto de Salud para el Bien,int8,2,0.0
+p18_5,¿Está afiliado(a) por un Seguro Privado?,int8,2,0.0
+p18_6,¿Está afiliado(a)?  Otra institución,int8,2,0.0
+p18_7,¿Está afiliado(a)? No está afiliado/a o inscrito/a a servicios médicos,int8,2,0.0
+p18_8,¿Está afiliado(a)? Ningún otro,int8,2,0.0
+p19,Entidad a la que vivía 14 años,int8,32,0.0
+p20,Municipio en el que vivía 14 años,float32,984,0.0
+p20_COD,Municipio en el que vivía 14 años codificado,str,978,0.0
+p21,"Y ese lugar en el que vivía a los 14 años, en ese tiempo, ¿era…?",int8,5,0.0
+p22,¿Cuántas personas vivían en su hogar cuando tenía 14 años de edad?,int32,30,0.0
+p23,"En la vivienda en la que usted vivía a los 14 años, ¿cuántos cuartos tenía en to",int8,17,0.0
+p24,"Y en esa vivienda, ¿cuántos cuartos usaban para dormir, sin contar pasillos ni b",int8,12,0.0
+p25,¿De qué material era la mayor parte del piso de esa vivienda?,int8,3,0.0
+p26a,"Cuando tenía 14 años, ¿tenían…? a) agua entubada dentro de la vivienda",int16,3,0.0
+p26b,"Cuando tenía 14 años, ¿tenían…? b) electricidad",int16,3,0.0
+p26c,"Cuando tenía 14 años, ¿tenían…? c) baño dentro de la vivienda",int16,3,0.0
+p26d,"Cuando tenía 14 años, ¿tenían…? d) calentador de agua (boiler o solar)",int16,3,0.0
+p26e,"Cuando tenía 14 años, ¿tenían…? e) personal remunerado del hogar",int16,3,0.0
+p27,¿Esa vivienda era…?,int16,6,0.0
+p28,¿En qué clase de vivienda vivía usted cuando tenía 14 años?,int8,9,0.0
+p29a,¿A los 14 años contaba con…? a) sala y/o comedor,int16,3,0.0
+p29b,¿A los 14 años contaba con…? b) jardín,int16,3,0.0
+p29c,¿A los 14 años contaba con…? c) patio,int16,3,0.0
+p29d,¿a los 14 años contaba con…? d) cuarto de lavado,int16,3,0.0
+p29e,¿A los 14 años contaba con…? e) cuarto de televisión o estudio,int16,3,0.0
+p29f,¿A los 14 años contaba con…? f) cochera o cajón de estacionamiento,int16,3,0.0
+p29g,¿A los 14 años contaba con…? g) cuarto separado para cocinar,int16,3,0.0
+p30,¿Cuántos automóviles propios tenía en el hogar en el que vivía a los 14 años?,int8,20,0.0
+p31a,"A los 14 años, ¿tenían…? a) estufa de gas o eléctrica",int16,3,0.0
+p31b,"A los 14 años, ¿tenían…? b) lavadora de ropa",int16,3,0.0
+p31c,"A los 14 años, ¿tenían…? c) refrigerador",int16,3,0.0
+p31d,"A los 14 años, ¿tenían…? d) teléfono fijo",int16,3,0.0
+p31e,"A los 14 años, ¿tenían…? e) televisor",int16,3,0.0
+p31f,"A los 14 años, ¿tenían…? f) tostador eléctrico de pan",int16,3,0.0
+p31g,"A los 14 años, ¿tenían…? g) aspiradora",int16,3,0.0
+p31h,"A los 14 años, ¿tenían…? h) televisión por cable (antena parabólica, Sky)",int16,3,0.0
+p31i,"A los 14 años, ¿tenían…? i) horno de microondas",int16,3,0.0
+p31j,"A los 14 años, ¿tenían…? j) teléfono celular",int16,3,0.0
+p31k,"A los 14 años, ¿tenían…? k) computadora, laptop o tablet",int16,3,0.0
+p31l,"A los 14 años, ¿tenían…? l) conexión a internet",int16,3,0.0
+p31m,"A los 14 años, ¿tenían…? m) videocasetera o reproductor de DVD",int16,3,0.0
+p31n,"A los 14 años, ¿tenían…? n) motocicleta y/o motoneta",int16,3,0.0
+p31o,"A los 14 años, ¿tenían…? o) bicicleta y/o triciclo para transportarse",int16,3,0.0
+p32a,"A los 14 años, ¿tenían? a) otra vivienda o departamento (diferente a la casa en",int16,3,0.0
+p32b,"A los 14 años, ¿tenían? b) un local comercial",int16,3,0.0
+p32c,"A los 14 años, ¿tenían? c) algún terreno o predio",int16,3,0.0
+p32d,"A los 14 años, ¿tenían? d) animales de trabajo (caballos, mulas o burros) o gana",int16,3,0.0
+p32e,"A los 14 años, ¿tenían? e) alguna cuenta de ahorro (bancaria o de una caja popul",int16,3,0.0
+p32f,"A los 14 años, ¿tenían? f) alguna tarjeta de crédito bancaria",int16,3,0.0
+p32g,"A los 14 años, ¿tenían? g) alguna tarjeta de crédito de tienda departamental",int16,3,0.0
+p32h,"A los 14 años, ¿tenían? h) cuenta o tarjeta de nómina (donde depositan su sueldo",int16,3,0.0
+p32i,"A los 14 años,¿tenían? i) cuenta o tarjeta de pensión",int16,3,0.0
+p32j,"A los 14 años, ¿tenían? j) cuenta o tarjeta para recibir apoyos de gobierno",int16,3,0.0
+p32k,"A los 14 años, ¿tenían? k) cuenta de cheques",int16,3,0.0
+p32l,"A los 14 años, ¿tenían? l) depósitos a plazo fijo (solo podían retirar en determ",int16,3,0.0
+p32m,"A los 14 años, ¿tenían? m) fondos de inversión (tener en acciones en casa de bol",int16,3,0.0
+p32n,"A los 14 años, ¿tenían? n) algún seguro de vida, gastos médicos, funerario, etc.",int16,3,0.0
+p32o,"A los 14 años, ¿alguna persona de su hogar era dueña/propietaria de…? o) otro pr",int16,3,0.0
+p33a,¿Donde vivía a los 14 años? a) el alumbrado público iluminaba bien las calles y,int16,3,0.0
+p33b,¿Donde vivía a los 14 años? b) había escuelas o bibliotecas públicas cercanas,int16,3,0.0
+p33c,"¿Donde vivía a los 14 años? c) había centros médicos cercanos (hospitales, clíni",int16,3,0.0
+p33d,¿Donde vivía a los 14 años? d) había guarderías o estancias infantiles cercanas,int16,3,0.0
+p33e,¿Donde vivía a los 14 años? e) había lugares de esparcimiento cercanos (plazas p,int16,3,0.0
+p33f,¿Donde vivía a los 14 años? f) había seguridad en la colonia (no ocurrían delito,int16,3,0.0
+p33g,¿Donde vivía a los 14 años? g) había facilidad para transportarse a otros lugare,int16,3,0.0
+p33h,¿Donde vivía a los 14 años? h) había limpieza en las calles,int16,3,0.0
+p33i,¿Donde vivía a los 14 años? i) había casas de día o residencias para adultos may,int16,3,0.0
+p34a,¿Su padre vive actualmente?,int16,4,0.0
+p34b,¿Su madre vive actualmente?,int16,4,0.0
+p35a,¿Cómo qué edad tenía su padre cuando murió?,float64,93,62.8
+p35b,¿Cómo qué edad tenía su madre cuando murió?,float64,91,71.8
+p36a,¿Qué edad tiene hoy su padre?,float64,93,6.3
+p36b,¿Qué edad tiene hoy su madre?,float64,86,2.0
+p37a,"Actualmente, ¿su padre recibe una pensión o jubilación?",float64,3,44.6
+p38a_1,¿Dónde proviene pensión del padre? Por su trabajo (IMSS o ISSSTE),float64,2,77.4
+p38a_2,¿Dónde proviene pensión del padre? Viudez (IMSS o ISSSTE),float64,2,77.4
+p38a_3,¿Dónde proviene pensión del padre? Esquema de jubilación privado,float64,2,77.4
+p38a_4,¿Dónde proviene pensión del padre? Divorcio o separación,float64,2,77.4
+p38a_5,¿Dnde proviene pensión del padre? Programa “Pensión para el bienestar de las per,float64,2,77.4
+p38a_8,¿De dónde proviene pensión de su padre? NS,float64,2,77.4
+p37b,"Actualmente, ¿su madre recibe una pensión o jubilación?",float64,3,30.5
+p38b_1,¿Dónde proviene pensión de madre? Por su trabajo (IMSS o ISSSTE),float64,2,75.6
+p38b_2,¿Dónde proviene pensión de madre? Viudez (IMSS o ISSSTE),float64,2,75.6
+p38b_3,¿Dónde proviene pensión de madre? Esquema de jubilación privado,float64,2,75.6
+p38b_4,¿Dónde proviene pensión de madre? Divorcio o separación,float64,2,75.6
+p38b_5,¿Dónde proviene  pensión de madre? Pensión para el bienestar de las personas adu,float64,2,75.6
+p38b_8,¿De dónde proviene pensión de su madre? NS,float64,2,75.6
+p39,"Cuando usted tenía alrededor de 14 años, ¿con quién vivía?",int8,5,0.0
+p40,¿Quién era el principal sostén económico del hogar donde usted vivía cuando tení,int8,5,0.0
+p40_otro,¿Quién era el principal sostén económico del hogar donde usted vivía cuando tení,float32,4,93.6
+p41a,¿Su padre asistió a la escuela o no asistió a la escuela?,float64,3,4.9
+p41b,¿Su madre asistió a la escuela o no asistió a la escuela?,float64,3,2.0
+p42a,¿Cuál fue el último nivel educativo que alcanzó su padre en la escuela?,float64,14,36.0
+p43a,¿Cuál fue el último grado o año que alcanzó su padre en ese nivel?,float64,7,37.8
+p44a,¿Su padre sabe leer y escribir o no sabe leer y escribir un recado?,float64,3,68.2
+p42b,¿Cuál fue el último nivel educativo que alcanzó su madre en la escuela?,float64,14,31.4
+p43b,¿Cuál fue el último grado o año que alcanzó su madre en ese nivel?,float64,7,33.1
+p44b,¿Su madre sabe leer y escribir o no sabe leer y escribir un recado?,float64,3,68.9
+p45a,"Cuando usted tenía alrededor de 14 años, ¿padre estaba inscrito/afiliado al Segu",float64,3,76.2
+p45b,"Cuando usted tenía alrededor de 14 años, ¿madre estaba inscrita/afiliada al Segu",float64,3,74.9
+p46,"Cuando usted tenía 14 años, ¿su padre/principal sostén económico trabajaba?",float64,6,1.2
+p47,¿Cuáles eran las tareas o funciones principales que desempeñaba su padre/princip,str,9702,0.0
+p48,"¿Cuál era el nombre del oficio, puesto o cargo que tenía su padre/principal sost",str,4119,0.0
+p48_SINCO,"Nombre del oficio, puesto o cargo del padre - SINCO 2019",float64,140,14.9
+p49,"En ese trabajo, ¿su padre/principal sostén económico era…?",float64,7,15.4
+p50,"¿Por parte de ese trabajo, su padre/principal sostén económico estaba asegurado",float64,6,15.4
+p51,"Cuando usted tenía 14 años, ¿su madre…?",float64,10,2.0
+p52,¿Cuál cree usted que era la razón principal por la que su madre no trabajaba?,float64,10,47.2
+p53,¿Cuáles eran las tareas o funciones principales que desempeñaba su madre en su t,str,5035,0.0
+p54,"¿Cuál era el nombre del oficio, puesto o cargo que tenía su madre en ese trabajo",str,2306,0.0
+p54_SINCO,"Nombre del oficio, puesto o cargo de la madre - SINCO 2019",float64,109,61.0
+p55,"En ese trabajo, ¿su madre era…?",float64,7,59.9
+p56," ¿Por parte de ese trabajo, su madre estaba asegurada o afiliada al…?",float64,6,59.9
+p57,"Incluyéndose a usted, ¿me podría decir cuántos hijos e hijas nacidos vivos tuvo",float64,21,2.0
+p58,"Considerando todas las hijas e hijos nacidos vivos que tuvo su madre, ¿en qué or",float64,19,7.1
+p59,"Durante la semana pasada, ¿usted…?",int8,6,0.0
+p60,¿Ha trabajado alguna vez en la vida? ¿O ha realizado alguna actividad que le pro,float64,2,67.2
+p61,¿A qué edad dejó de trabajar por última vez?,float64,47,84.2
+p62,¿Cuál es la razón principal por la que actualmente usted no trabaja?,float64,16,67.2
+p63,¿Cuáles son las tareas o funciones principales que desempeña en su trabajo?,str,8814,0.0
+p64,"¿Cuál es el nombre de su oficio, puesto o cargo?",str,4478,0.0
+p64_SINCO,"Nombre del oficio, puesto o cargo del entrevistado - SINCO 2019",float64,142,33.0
+p65,"En su trabajo, ¿usted es…?",float64,6,32.8
+p66,¿Cuántas personas están a su cargo?,float64,58,32.8
+p67,"¿A qué se dedica la empresa, el servicio o negocio donde usted tiene su trabajo?",str,7478,0.0
+p67_SCIAN,A qué se dedica la empresa entrevistado SCIAN 2018,float32,281,33.0
+p68,"Por parte de su trabajo, ¿usted está asegurado(a) o afiliado(a) al…?",float64,5,32.8
+p69,¿En este empleo cuenta con un contrato por escrito?,float64,2,32.8
+p70,"¿El contrato, …?",float64,4,73.8
+p71,"Aproximadamente, ¿cuántas personas, incluyendo a la persona propietaria, laboran",float64,12,32.8
+p72,¿Cuántas horas trabaja en promedio a la semana en esta actividad?,float64,105,32.8
+p73,¿Le gustaría laborar más horas de las que actualmente trabaja?,float64,3,76.6
+p74,¿Cuál es la razón principal por la que no trabajaría más tiempo?,float64,20,86.0
+p75,¿En qué año empezó a trabajar en esta actividad?,float64,62,32.8
+p76,"¿Cuántos trabajos ha tenido a lo largo de su vida, incluyendo el actual?",float64,36,17.1
+p77,¿A qué edad tuvo usted su PRIMER trabajo?,float64,45,49.2
+p78,¿Cuáles eran las tareas o funciones principales que usted desempeñaba en su prim,str,6978,0.0
+p79,"¿Cuál era el nombre del oficio, puesto o cargo en ese trabajo?",str,3389,0.0
+p79_SINCO,"Nombre del oficio, puesto o cargo del entr (primer) - SINCO 2019",float64,132,49.2
+p80,¿En su primer trabajo usted era…?,float64,6,49.2
+p81,¿Cuántas personas estaban a su cargo?,float64,43,49.2
+p82,"En su primer trabajo, ¿a qué se dedicaba la empresa, el servicio o negocio?",str,5737,0.0
+p82_SCIAN,A qué se dedica la empresa entrevistado (primer) SCIAN 2018,float32,275,49.3
+p83,"¿Por parte de su primer trabajo, usted estaba asegurado(a) o afiliado(a) al…?",float64,5,49.2
+p84,¿En su primer empleo contaba con un contrato por escrito?,float64,2,49.2
+p85,"¿El contrato de su primer trabajo, era…?",float64,4,85.1
+p86,"Aproximadamente, ¿cuántas personas, incluyendo a la persona propietaria, laborab",float64,12,49.2
+p87,¿Cuántas horas trabajaba en promedio a la semana en su primer empleo?,float64,108,49.2
+p88,¿De qué material es la mayor parte del piso de esta vivienda?,int8,3,0.0
+p89,"¿Cuántos cuartos usan para dormir, sin contar pasillos ni baños?",int8,10,0.0
+p90,"¿Cuántos cuartos tiene en total esta vivienda, contando la cocina? (no cuente pa",int32,14,0.0
+p91,¿La vivienda donde actualmente vive es…?,int16,6,0.0
+p92,¿Quién es la persona propietaria de esta vivienda?,float64,4,24.7
+p93,¿En qué clase de vivienda vive usted?,int8,9,0.0
+p94a,¿Esta vivienda cuenta con...? a) sala y/o comedor,int8,2,0.0
+p94b,¿Esta vivienda cuenta con...? b) jardín,int8,2,0.0
+p94c,¿Esta vivienda cuenta con...? c) patio,int8,2,0.0
+p94d,¿Esta vivienda cuenta con...? d) cuarto de lavado,int8,2,0.0
+p94e,¿Esta vivienda cuenta con...? e) cuarto de televisión o estudio,int8,2,0.0
+p94f,¿Esta vivienda cuenta con...? f) cochera o cajón de estacionamiento,int8,2,0.0
+p94g,¿Esta vivienda cuenta con...? g) cuarto separado para cocinar,int8,2,0.0
+p95a,¿En esta vivienda tienen...? a) agua entubada dentro de la vivienda,int8,2,0.0
+p95b,¿En esta vivienda tienen...? b) electricidad,int8,2,0.0
+p95c,¿En esta vivienda tienen...? c) baño dentro de la vivienda,int8,2,0.0
+p95d,"¿En esta vivienda tienen...? d) calentador de agua (boiler, solar)",int8,2,0.0
+p95e,¿En esta vivienda tienen...? e) servicio doméstico,int8,2,0.0
+p96a,¿Este hogar cuenta con…? a) estufa de gas o eléctrica,int8,2,0.0
+p96b,¿Este hogar cuenta con…? b) lavadora de ropa,int8,2,0.0
+p96c,¿Este hogar cuenta con…? c) refrigerador,int8,2,0.0
+p96d,¿Este hogar cuenta con…? d) horno de microondas,int8,2,0.0
+p96e,¿Este hogar cuenta con…? e) televisor digital,int8,2,0.0
+p96f,¿Este hogar cuenta con…? f) tostador eléctrico de pan,int8,2,0.0
+p96g,"¿Este hogar cuenta con…? g) consola de videojuegos (Xbox, Playstation, etc.)",int8,2,0.0
+p96h,¿Este hogar cuenta con…? h) aspiradora,int8,2,0.0
+p96i,"¿Este hogar cuenta con…? i) televisión de paga (TV por Cable, Netflix, etc.)",int8,2,0.0
+p96j,¿Este hogar cuenta con…? j) línea telefónica fija,int8,2,0.0
+p96k,¿Este hogar cuenta con…? k) teléfono celular,int8,2,0.0
+p96l,¿Este hogar cuenta con…? l) conexión a internet,int8,2,0.0
+p96m,"¿Este hogar cuenta con…? m) tableta electrónica (iPad, Tablet)",int8,2,0.0
+p96n,¿Este hogar cuenta con…? n) computadora,int8,2,0.0
+p96o,¿Este hogar cuenta con…? o) maquinaria o equipo agrícola,int8,2,0.0
+p96p,"¿Este hogar cuenta con…? p) animales de trabajo (caballos, mulas o burros) o gan",int8,2,0.0
+p96q,¿Este hogar cuenta con…? q) motocicletas y/o motonetas,int8,2,0.0
+p96r,¿Este hogar cuenta con…? r) bicicleta y/o triciclo para transportarse,int8,2,0.0
+p97a,¿Tiene usted (cónyuge/pareja)…? a) otra vivienda o departamento,int8,2,0.0
+p97b,¿Tiene usted (cónyuge/pareja)…? b) un local o construcción para uso comercial,int8,2,0.0
+p97c,¿Tiene usted (cónyuge/pareja)…? c) algún terreno o predio,int8,2,0.0
+p97d,"¿Tiene usted (cónyuge/pareja)…? d) alguna cuenta bancaria (de débito, ahorro o c",int8,2,0.0
+p97e,¿Tiene usted (cónyuge/pareja)…? e) alguna tarjeta de crédito bancaria,int8,2,0.0
+p97f,¿Tiene usted (cónyuge/pareja)…? f) alguna tarjeta de crédito de tienda departame,int8,2,0.0
+p97g,¿Tiene usted (cónyuge/pareja)…? g) Cuenta o tarjeta de nómina (donde depositan s,int8,2,0.0
+p97h,¿Tiene usted (cónyuge/pareja)…? h) Cuenta o tarjeta de pensión,int8,2,0.0
+p97i,¿Tiene usted (cónyuge/pareja)…? i) Cuenta o tarjeta para recibir apoyos del gobi,int8,2,0.0
+p97j,¿Tiene usted (cónyuge/pareja)…? j) Cuenta de cheques,int8,2,0.0
+p97k,¿Tiene usted (cónyuge/pareja)…? k) Depósitos a plazo fijo (solo puede retirar en,int8,2,0.0
+p97l,¿Tiene usted (cónyuge/pareja)…? l) Cuenta contratada por internet o aplicación c,int8,2,0.0
+p97m,"¿Tiene usted (cónyuge/pareja)…? m) Algún seguro de vida, gastos médicos, funerar",int8,2,0.0
+p97n,¿Tiene usted (cónyuge/pareja)…? n) Otro producto financiero,int8,2,0.0
+p98a,¿Donde usted vive actualmente…? a) El alumbrado público ilumina bien las calles,int16,3,0.0
+p98b,¿Donde usted vive actualmente…? b) Hay escuelas o bibliotecas públicas cercanas,int16,3,0.0
+p98c,"¿Donde usted vive actualmente…? c) Hay centros médicos cercanos (hospitales, clí",int16,3,0.0
+p98d,¿Donde usted vive actualmente…? d) Hay guarderías o estancias infantiles cercana,int16,3,0.0
+p98e,¿Donde usted vive actualmente…? e) Hay lugares de esparcimiento cercanos (plazas,int16,3,0.0
+p98f,¿Donde usted vive actualmente…? f) Hay seguridad en la colonia (no ocurren delit,int16,3,0.0
+p98g,¿Donde usted vive actualmente…? g) Hay facilidad para transportarse a otros luga,int16,3,0.0
+p98h,¿Donde usted vive actualmente…? h) Hay limpieza en las calles,int16,3,0.0
+p98i,¿Donde usted vive actualmente…? i) Hay casas de día o residencias para adultos m,int16,3,0.0
+p99,¿Cuántos automóviles propios tienen en su hogar?,int8,13,0.0
+p100,"Contándose usted, ¿cuántos miembros del hogar aportan ingresos al hogar?",int8,8,0.0
+p101,"Contando todas las fuentes de ingreso, y todas las personas que aportan ingresos",int32,336,0.0
+p102,¿Cuál es el total de ingresos que recibe este hogar en un mes normal?,float64,8,75.2
+p103,¿Dónde pondría usted su hogar? atual,int8,10,0.0
+p104,¿Dónde pondría usted su hogar 14 años,int8,10,0.0
+p105a,"Indispensables para vivir dignamente a) Jabón, pasta de dientes y shampoo para l",int16,3,0.0
+p105b,Indispensables para vivir dignamente b) Una mesa con suficientes sillas para que,int16,3,0.0
+p105c,Indispensables para vivir dignamente c) Cuartos para dormir de la vivienda con v,int16,3,0.0
+p105d,Indispensables para vivir dignamente d) Por lo menos un cuarto de baño exclusivo,int16,3,0.0
+p105e,Indispensables para vivir dignamente e) Conexión fija (wi-fi) a internet en la v,int16,3,0.0
+p105f,Indispensables para vivir dignamente f) Refrigerador que funciona,int16,3,0.0
+p105g,Indispensables para vivir dignamenteg) Contar con los recursos necesarios para d,int16,3,0.0
+p105h,"Indispensables para vivir dignamente h) Acceso a transporte público (colectivo,",int16,3,0.0
+p105i,Indispensables para vivir dignamente i) Ser atendidos por un médico cuando algui,int16,3,0.0
+p105j,Indispensables para vivir dignamente j) Realizarse estudios o tratamientos solic,int16,3,0.0
+p105k,Indispensables para vivir dignamente k) Adquirir todos los medicamentos o remedi,int16,3,0.0
+p105l,Indispensables para vivir dignamente l) Un par de zapatos y un par de tenis para,float64,3,55.6
+p105m,Indispensables para vivir dignamente m) Una pieza de equipo para esparcirse fuer,float64,3,55.6
+p105n,Indispensables para vivir dignamente n) Un escritorio iluminado para hacer la ta,float64,3,55.6
+p105o,Indispensables para vivir dignamente o) Realizar un chequeo médico anual para to,float64,3,55.6
+p106a,"En su hogar… a) Disponen de jabón, pasta de dientes y shampoo para la higiene pe",int16,4,0.0
+p106b,En su hogar… b) Tienen una mesa con suficientes sillas para que toda la familia,int16,4,0.0
+p106c,En su hogar… c) Todos los cuartos para dormir de la vivienda tienen ventanas de,int16,4,0.0
+p106d,En su hogar… d) Tienen por lo menos un cuarto de baño exclusivo en la vivienda c,int16,4,0.0
+p106e,En su hogar… e) Tienen conexión fija a internet en la vivienda (no de celulares),int16,4,0.0
+p106f,En su hogar… f) Tienen un refrigerador que funciona,int16,4,0.0
+p106g,En su hogar… g) Disponen de los recursos necesarios para desechar la ropa que ya,int16,4,0.0
+p106h,"En su hogar… h) Tienen acceso a transporte público (colectivo, combi, pesero, ca",int16,4,0.0
+p106i,En su hogar…i) Disponen de los recursos necesarios para ser atendidos por un méd,int16,4,0.0
+p106j,En su hogar… j) Disponen de los recursos necesarios para realizarse estudios o t,int16,4,0.0
+p106k,En su hogar… k) Disponen de los recursos necesarios para adquirir todos los medi,int16,4,0.0
+p106l,En su hogar… l) Todos los infantes del hogar cuentan con un par de zapatos y un,float64,4,55.6
+p106m,En su hogar… m) Todos los infantes del hogar tienen por lo menos una pieza de eq,float64,4,55.6
+p106n,En su hogar… n) Tienen por lo menos un escritorio (no la mesa para comer) con il,float64,4,55.6
+p106o,En su hogar…o) Realizar un chequeo médico anual para todos los infantes del hoga,float64,4,55.6
+p107a,¿Con qué frecuencia la última semana…? a) sentía como si no pudiera quitarse la,int8,4,0.0
+p107b,¿Con qué frecuencia la última semana…? b) le costaba concentrarse en lo que esta,int8,4,0.0
+p107c,¿Con qué frecuencia la última semana…? c) se sintió sin esperanza,int8,4,0.0
+p107d,¿Con qué frecuencia la última semana…? d) le parecía que todo lo que hacía era u,int8,4,0.0
+p107e,¿Con qué frecuencia la última semana…? e) no durmió bien,int8,4,0.0
+p107f,¿Con qué frecuencia la última semana…? f) se sintió triste,int8,4,0.0
+p107g,¿Con qué frecuencia la última semana? g) disfrutó de la vida,int8,4,0.0
+p108a,"a) Sentirse nerviosa(o), intranquila(o), con los nervios de punta",int8,4,0.0
+p108b,b) No poder dejar de preocuparse o no poder controlar su preocupación,int8,4,0.0
+p109,¿Hasta qué punto la igualdad de oportunidades de las personas está garantizada e,int8,4,0.0
+p110,¿Usted se considera una persona…?,int16,5,0.0
+p111,¿Usted habla alguna lengua indígena?,int8,2,0.0
+p112,¿Cuál considera que es el color de su piel?,str,11,0.0
+p113dL,CIELab L - dorso de la mano,float64,3129,4.2
+p113da,CIELab a - dorso de la mano,float64,1565,4.2
+p113db,CIELab b - dorso de la mano,float64,1502,4.2
+p113mL,CIELab L - muñeca de la mano,float64,3075,4.4
+p113ma,CIELab a - muñeca de la mano,float64,1591,4.4
+p113mb,CIELab b - muñeca de la mano,float64,1460,4.4
+region,Region en la que vive el entrevistado,float32,5,0.0
+region_14,Region en la que vivía a los 14 años el entrevistado,float32,5,0.3
+upm_muestra,Unidad primaria de muestreo,str,1361,0.0
+est,Estrato de diseño,int32,5,0.0
+ocup,Identificador de entrevistado ocupado,float32,2,0.0
+cmop,Clasificación CMO padre,float32,92,14.9
+clasep,Clasificacion ocupacional del padre del encuestado,float32,6,15.6
+cmom,Clasificación CMO madre,float32,71,61.0
+clasem,Clasificacion ocupacional de la madre del encuestado,float32,6,61.7
+cmo,Clasificación CMO entrevistado,float32,89,33.1
+clase,Clasificacion ocupacional del encuestado,float32,6,33.2
+cmoe1,Clasificación CMO primer empleo entrevistado,float32,84,49.2
+clase1,Clasificacion ocupacional del primer empleo encuestado,float32,6,49.4
+factor,Ponderador entrevistado,float32,17485,0.0
+educp,Nivel educativo del padre (4 niveles),float32,4,18.9
+educm,Nivel educativo de la madre (4 niveles),float32,4,10.3
+educ,Nivel educativo del entrevistado (4 niveles),float32,4,1.6
+ingc_pc,Ingreso per cápita del hogar - imputado,float32,17826,0.0
