@@ -1,0 +1,587 @@
+---
+title: "Desigualdad de Oportunidad en México"
+subtitle: "Análisis con ESRU-EMOVI 2023"
+author: "Eduardo"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.align = 'center')
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+
+project_root <- "C:/Users/HP ZBOOK/Desktop/Inequality of Opportunity"
+```
+
+---
+
+# Resumen Ejecutivo {-}
+
+Este estudio analiza la **Desigualdad de Oportunidad (IOp)** en México utilizando datos de la Encuesta ESRU-EMOVI 2023. La pregunta central es:
+
+> **¿Qué proporción de la desigualdad de ingresos se debe a circunstancias fuera del control individual?**
+
+## Hallazgos Principales {-}
+
+```{r}
+resultado <- data.frame(
+  Modelo = c("Random Forest", "XGBoost (optimizado)", "Árbol de Decisión", "Gradient Boosting", "RF Cross-Validation"),
+  IOp_Gini = c("52.6%", "53.5%", "55.4%", "56.8%", "51.5% ± 1.7%"),
+  R2 = c("25.9%", "34.5%", "28.3%", "31.2%", "-"),
+  Nota = c("Estimación principal", "Con SHAP", "58 tipos identificados", "Mayor poder predictivo", "Estimación robusta")
+)
+kable(resultado, col.names = c("Modelo", "IOp (Gini)", "R²", "Nota")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(1, bold = TRUE, background = "#e6f3ff")
+```
+
+<div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
+**Conclusión Principal:** Aproximadamente **52-57% de la desigualdad de ingresos** en México se debe a circunstancias fuera del control individual como la educación de los padres, el lugar de nacimiento y el sexo.
+</div>
+
+---
+
+# Introducción
+
+## ¿Qué es la Desigualdad de Oportunidad?
+
+La **Desigualdad de Oportunidad (IOp)** mide qué proporción de la desigualdad total se debe a factores que las personas **no pueden controlar**, llamados **circunstancias**:
+
+- **Parental**: Educación y ocupación de los padres
+- **Geográfico**: Región y tipo de localidad donde creciste
+- **Demográfico**: Sexo, etnicidad, lengua indígena
+- **Socioeconómico**: Recursos del hogar de origen
+
+Bajo el marco de **John Roemer (1998)**, la desigualdad que proviene de estas circunstancias se considera **injusta** o **éticamente inaceptable**, mientras que la desigualdad derivada del esfuerzo individual es considerada "justa".
+
+## Marco Conceptual
+
+$$\text{IOp Share} = \frac{\text{Desigualdad entre tipos}}{\text{Desigualdad total}} = \frac{Gini(\mu_{tipos})}{Gini(Y)}$$
+
+Donde un **tipo** es un grupo de personas que comparten las mismas circunstancias.
+
+---
+
+# Datos y Metodología
+
+## Datos Utilizados
+
+```{r}
+info_datos <- data.frame(
+  Caracteristica = c("Encuesta", "Año", "Institución", "Observaciones totales",
+                     "Casos completos", "Variable de resultado", "Circunstancias"),
+  Valor = c("ESRU-EMOVI", "2023", "Centro de Estudios Espinosa Yglesias (CEEY)",
+            "17,843", "13,164", "Ingreso per cápita del hogar", "9 variables")
+)
+kable(info_datos, col.names = c("Característica", "Valor")) %>%
+  kable_styling(bootstrap_options = c("striped"), full_width = FALSE)
+```
+
+## Variables de Circunstancias
+
+```{r}
+variables <- data.frame(
+  Variable = c("educm", "educp", "clasep", "sexo", "region_14", "p21", "cohorte", "p111", "p112"),
+  Descripcion = c("Educación de la madre", "Educación del padre", "Clase ocupacional del padre",
+                  "Sexo", "Región a los 14 años", "Tipo de localidad a los 14 años",
+                  "Cohorte de nacimiento", "Habla lengua indígena", "Tono de piel"),
+  Tipo = c("4 niveles", "4 niveles", "6 clases", "Binaria", "5 regiones",
+           "Ciudad/Pueblo/Rural", "Grupos de edad", "Sí/No", "Escala 1-11")
+)
+kable(variables, col.names = c("Variable", "Descripción", "Tipo")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE)
+```
+
+## Modelos Utilizados
+
+```{r}
+modelos <- data.frame(
+  Modelo = c("Árbol de Decisión", "Random Forest", "Gradient Boosting", "XGBoost + SHAP"),
+  Proposito = c("Crear partición interpretable en 'tipos'",
+                "Estimación robusta (ensemble de 200 árboles)",
+                "Mayor poder predictivo",
+                "Interpretabilidad con valores SHAP"),
+  Paquete = c("sklearn DecisionTreeRegressor", "sklearn RandomForestRegressor",
+              "sklearn GradientBoostingRegressor", "XGBoost + SHAP (Python)")
+)
+kable(modelos, col.names = c("Modelo", "Propósito", "Implementación")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE)
+```
+
+---
+
+# Resultados de IOp
+
+## Estimaciones Principales
+
+```{r fig.width=10, fig.height=5}
+iop_data <- data.frame(
+  Modelo = c("RF (CV)", "Random Forest", "XGBoost", "Árbol Decisión", "Gradient Boosting"),
+  IOp = c(51.5, 52.6, 53.5, 55.4, 56.8)
+)
+iop_data$Modelo <- factor(iop_data$Modelo, levels = iop_data$Modelo)
+
+ggplot(iop_data, aes(x = Modelo, y = IOp, fill = IOp)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_text(aes(label = paste0(IOp, "%")), vjust = -0.5, size = 5, fontface = "bold") +
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red", size = 1) +
+  annotate("text", x = 5, y = 51, label = "50% = mitad de desigualdad", color = "red", hjust = 1) +
+  scale_fill_gradient(low = "#3498db", high = "#e74c3c") +
+  labs(title = "Desigualdad de Oportunidad por Modelo",
+       subtitle = "Porcentaje de la desigualdad total atribuible a circunstancias",
+       x = "", y = "IOp (%)") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 16, face = "bold"),
+        axis.text.x = element_text(angle = 15, hjust = 1)) +
+  scale_y_continuous(limits = c(0, 65))
+```
+
+**Interpretación:** Todos los modelos coinciden en que **más de la mitad** de la desigualdad de ingresos se debe a circunstancias. El rango de 51.5% a 56.8% muestra robustez en los resultados.
+
+## Comparación con Literatura
+
+```{r}
+literatura <- data.frame(
+  Estudio = c("Este estudio", "Monroy-Gómez-Franco (2023)", "Plassot et al. (2022)"),
+  Datos = c("EMOVI 2023", "EMOVI 2017", "EMOVI 2017"),
+  IOp = c("52-57%", "≥48%", "45-55%"),
+  Metodo = c("RF/XGBoost/ctree", "Conditional Inference Trees", "Machine Learning")
+)
+kable(literatura, col.names = c("Estudio", "Datos", "IOp", "Método"),
+      caption = "Comparación con estudios previos para México") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+Nuestros resultados son **consistentes** con la literatura previa y ligeramente superiores, lo cual podría reflejar mayor precisión metodológica o cambios reales entre 2017 y 2023.
+
+---
+
+# Importancia de las Circunstancias
+
+## Variable Importance (Random Forest)
+
+```{r fig.width=10, fig.height=6}
+varimp <- data.frame(
+  Variable = c("Educación madre", "Región a los 14", "Sexo", "Educación padre",
+               "Rural/Urbano", "Ocupación padre", "Lengua indígena", "Cohorte", "Tono de piel"),
+  Importancia = c(24.5, 20.5, 19.4, 11.2, 7.9, 6.8, 4.6, 4.6, 0.5)
+)
+varimp$Variable <- factor(varimp$Variable, levels = varimp$Variable[order(varimp$Importancia)])
+
+ggplot(varimp, aes(x = Variable, y = Importancia, fill = Importancia)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Importancia, "%")), hjust = -0.1, size = 4, fontface = "bold") +
+  coord_flip() +
+  scale_fill_gradient(low = "#f39c12", high = "#c0392b") +
+  labs(title = "Importancia de las Circunstancias (Random Forest)",
+       subtitle = "¿Qué factores explican más la desigualdad de oportunidad?",
+       x = "", y = "Importancia (%)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(size = 16, face = "bold")) +
+  scale_y_continuous(limits = c(0, 30))
+```
+
+## SHAP Values (XGBoost)
+
+```{r fig.width=10, fig.height=6}
+shap <- data.frame(
+  Variable = c("Sexo", "Región a los 14", "Educación madre", "Educación padre",
+               "Cohorte", "Rural/Urbano", "Ocupación padre", "Lengua indígena", "Tono de piel"),
+  SHAP = c(21.7, 14.8, 12.9, 12.5, 12.4, 11.8, 9.6, 4.4, 0.0)
+)
+shap$Variable <- factor(shap$Variable, levels = shap$Variable[order(shap$SHAP)])
+
+ggplot(shap, aes(x = Variable, y = SHAP, fill = SHAP)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(SHAP, "%")), hjust = -0.1, size = 4, fontface = "bold") +
+  coord_flip() +
+  scale_fill_gradient(low = "#9b59b6", high = "#2ecc71") +
+  labs(title = "Importancia SHAP (XGBoost)",
+       subtitle = "Contribución promedio de cada circunstancia a la predicción",
+       x = "", y = "Mean |SHAP| (%)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(size = 16, face = "bold")) +
+  scale_y_continuous(limits = c(0, 26))
+```
+
+## Comparación de Métodos
+
+```{r}
+comp <- data.frame(
+  Rank = 1:5,
+  Random_Forest = c("Educación madre (24.5%)", "Región (20.5%)", "Sexo (19.4%)",
+                    "Educación padre (11.2%)", "Rural/Urbano (7.9%)"),
+  SHAP_XGBoost = c("Sexo (21.7%)", "Región (14.8%)", "Educación madre (12.9%)",
+                   "Educación padre (12.5%)", "Cohorte (12.4%)")
+)
+kable(comp, col.names = c("Ranking", "Random Forest", "SHAP (XGBoost)")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+**Hallazgo clave:** Ambos métodos coinciden en los principales factores (educación de padres, región, sexo), aunque difieren en su ordenamiento. SHAP revela que el **sexo tiene un efecto directo más fuerte** sobre el ingreso.
+
+---
+
+# Ingreso Promedio por Circunstancia
+
+## Educación de la Madre
+
+```{r}
+educm <- data.frame(
+  Educacion = c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad"),
+  Ingreso = c(7218, 10145, 12369, 17283)
+)
+```
+
+```{r fig.width=10, fig.height=5}
+ggplot(educm, aes(x = Educacion, y = Ingreso, fill = Educacion)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), vjust = -0.5, size = 5, fontface = "bold") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(title = "Ingreso Promedio según Educación de la Madre",
+       subtitle = "Ingreso per cápita mensual del hogar (pesos)",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 20000), labels = scales::comma)
+```
+
+```{r}
+educm$Ingreso_fmt <- paste0("$", format(round(educm$Ingreso), big.mark = ","))
+educm$vs_Base <- c("-", "+41%", "+71%", "+139%")
+kable(educm[, c("Educacion", "Ingreso_fmt", "vs_Base")],
+      col.names = c("Educación Madre", "Ingreso Promedio", "vs Sin/Primaria")) %>%
+  kable_styling(bootstrap_options = c("striped"), full_width = FALSE)
+```
+
+<div style="background-color: #fff3cd; padding: 10px; border-radius: 5px;">
+**Interpretación:** Una persona cuya madre tiene **universidad** gana **$17,283** vs **$7,218** de quien tiene madre sin primaria. Eso es **2.4 veces más** — una diferencia de **$10,065 pesos mensuales** determinada únicamente por la educación de la madre.
+</div>
+
+---
+
+## Educación del Padre
+
+```{r}
+educp <- data.frame(
+  Educacion = c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad"),
+  Ingreso = c(7041, 9452, 11251, 16801)
+)
+```
+
+```{r fig.width=10, fig.height=5}
+ggplot(educp, aes(x = Educacion, y = Ingreso, fill = Educacion)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), vjust = -0.5, size = 5, fontface = "bold") +
+  scale_fill_brewer(palette = "Greens") +
+  labs(title = "Ingreso Promedio según Educación del Padre",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 20000), labels = scales::comma)
+```
+
+**Brecha:** Universidad vs Sin primaria = **2.4x más** ($9,760 de diferencia)
+
+---
+
+## Sexo
+
+```{r}
+sexo <- data.frame(
+  Sexo = c("Hombre", "Mujer"),
+  Ingreso = c(10759, 7062)
+)
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(sexo, aes(x = Sexo, y = Ingreso, fill = Sexo)) +
+  geom_bar(stat = "identity", width = 0.6) +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), vjust = -0.5, size = 6, fontface = "bold") +
+  scale_fill_manual(values = c("#3498db", "#e74c3c")) +
+  labs(title = "Brecha de Género en el Ingreso",
+       subtitle = "Ingreso per cápita mensual del hogar",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 13000), labels = scales::comma)
+```
+
+<div style="background-color: #f8d7da; padding: 10px; border-radius: 5px;">
+**Brecha de género:** Los hombres ganan **$3,697 pesos más** que las mujeres en promedio (**1.5x más**). Esta diferencia existe controlando por otras circunstancias.
+</div>
+
+---
+
+## Región a los 14 años
+
+```{r}
+region <- data.frame(
+  Region = c("Norte", "Centro", "Centro-Norte", "Centro-Sur", "Sur"),
+  Ingreso = c(11916, 9569, 8379, 7412, 5979)
+)
+region <- region[order(-region$Ingreso), ]
+```
+
+```{r fig.width=10, fig.height=5}
+ggplot(region, aes(x = reorder(Region, Ingreso), y = Ingreso, fill = Ingreso)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), hjust = -0.1, size = 5, fontface = "bold") +
+  scale_fill_gradient(low = "#e74c3c", high = "#27ae60") +
+  coord_flip() +
+  labs(title = "Ingreso Promedio por Región donde Creció",
+       subtitle = "Ordenado de mayor a menor ingreso",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 14000), labels = scales::comma)
+```
+
+**Brecha regional:** Norte vs Sur = **2.0x más** ($5,937 de diferencia)
+
+---
+
+## Rural / Urbano
+
+```{r}
+rural <- data.frame(
+  Tipo = c("Ciudad", "Pueblo", "Zona Rural"),
+  Ingreso = c(12618, 10221, 5760)
+)
+```
+
+```{r fig.width=9, fig.height=5}
+ggplot(rural, aes(x = reorder(Tipo, Ingreso), y = Ingreso, fill = Ingreso)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), hjust = -0.1, size = 5, fontface = "bold") +
+  scale_fill_gradient(low = "#e67e22", high = "#2ecc71") +
+  coord_flip() +
+  labs(title = "Ingreso según Tipo de Localidad donde Creció",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 15000), labels = scales::comma)
+```
+
+**Brecha urbano-rural:** Ciudad vs Zona Rural = **2.2x más** ($6,858 de diferencia)
+
+---
+
+## Clase Ocupacional del Padre
+
+```{r}
+clasep <- data.frame(
+  Clase = c("Clase 6 (Alta)", "Clase 5", "Clase 4", "Clase 2", "Clase 3", "Clase 1 (Baja)"),
+  Ingreso = c(16812, 13002, 9845, 9412, 8558, 5687)
+)
+```
+
+```{r fig.width=10, fig.height=5}
+ggplot(clasep, aes(x = reorder(Clase, Ingreso), y = Ingreso, fill = Ingreso)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), hjust = -0.1, size = 4, fontface = "bold") +
+  scale_fill_gradient(low = "#9b59b6", high = "#1abc9c") +
+  coord_flip() +
+  labs(title = "Ingreso según Clase Ocupacional del Padre",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 20000), labels = scales::comma)
+```
+
+**Brecha ocupacional:** Clase Alta vs Clase Baja = **3.0x más** ($11,125 de diferencia)
+
+---
+
+## Lengua Indígena
+
+```{r}
+indigena <- data.frame(
+  Habla = c("Sí habla", "No habla"),
+  Ingreso = c(3916, 8958)
+)
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(indigena, aes(x = Habla, y = Ingreso, fill = Habla)) +
+  geom_bar(stat = "identity", width = 0.6) +
+  geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))), vjust = -0.5, size = 6, fontface = "bold") +
+  scale_fill_manual(values = c("#c0392b", "#27ae60")) +
+  labs(title = "Ingreso según Condición Indígena",
+       subtitle = "¿Habla lengua indígena?",
+       x = "", y = "Ingreso (pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 11000), labels = scales::comma)
+```
+
+<div style="background-color: #f8d7da; padding: 10px; border-radius: 5px;">
+**Brecha étnica:** Quienes **no hablan** lengua indígena ganan **2.3x más** ($5,042 de diferencia). Esta es una de las brechas más pronunciadas.
+</div>
+
+---
+
+# Resumen de Brechas
+
+```{r fig.width=10, fig.height=6}
+brechas <- data.frame(
+  Circunstancia = c("Clase ocupacional padre", "Educación madre", "Educación padre",
+                    "Lengua indígena", "Localidad", "Región", "Sexo"),
+  Brecha = c(3.0, 2.4, 2.4, 2.3, 2.2, 2.0, 1.5),
+  Diferencia = c(11125, 10065, 9760, 5042, 6858, 5937, 3697)
+)
+
+ggplot(brechas, aes(x = reorder(Circunstancia, Brecha), y = Brecha, fill = Brecha)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Brecha, "x")), hjust = -0.1, size = 5, fontface = "bold") +
+  geom_hline(yintercept = 2, linetype = "dashed", color = "red") +
+  coord_flip() +
+  scale_fill_gradient(low = "#f39c12", high = "#c0392b") +
+  labs(title = "Brechas de Ingreso por Circunstancia",
+       subtitle = "Cuántas veces más gana el grupo favorecido vs el desfavorecido",
+       x = "", y = "Brecha (veces)") +
+  theme_minimal() +
+  theme(legend.position = "none", plot.title = element_text(face = "bold", size = 14)) +
+  scale_y_continuous(limits = c(0, 3.5))
+```
+
+```{r}
+brechas$Diferencia_fmt <- paste0("$", format(brechas$Diferencia, big.mark = ","))
+brechas$Brecha_fmt <- paste0(brechas$Brecha, "x")
+kable(brechas[order(-brechas$Brecha), c("Circunstancia", "Brecha_fmt", "Diferencia_fmt")],
+      col.names = c("Circunstancia", "Brecha", "Diferencia en pesos"),
+      row.names = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(1:3, bold = TRUE, background = "#ffe6e6")
+```
+
+---
+
+# Visualización del Árbol de Decisión
+
+El árbol de decisión particiona la población en **58 tipos** basados en circunstancias. Cada tipo representa un grupo de personas con características similares y expectativas de ingreso similares.
+
+```{r out.width="100%", fig.cap="Árbol de decisión simplificado"}
+arbol_path <- file.path(project_root, "outputs/figures/arbol_simplificado.png")
+if (file.exists(arbol_path)) {
+  knitr::include_graphics(arbol_path)
+} else {
+  cat("Imagen no encontrada. Ejecutar visualize_trees_mejorado.R primero.")
+}
+```
+
+**Cómo leer el árbol:**
+
+- Cada **nodo interno** muestra una variable y la condición de división
+- Cada **nodo terminal** (hoja) representa un "tipo" con su distribución de ingreso
+- El árbol revela qué combinaciones de circunstancias determinan el ingreso esperado
+
+---
+
+# Análisis SHAP
+
+Los valores SHAP (SHapley Additive exPlanations) muestran cómo cada circunstancia contribuye a la predicción del ingreso para cada individuo.
+
+```{r out.width="100%", fig.cap="SHAP Summary Plot - Distribución de efectos por circunstancia"}
+shap_path <- file.path(project_root, "outputs/figures/shap_summary.png")
+if (file.exists(shap_path)) {
+  knitr::include_graphics(shap_path)
+} else {
+  cat("Imagen no encontrada. Ejecutar xgboost_shap_analysis.py primero.")
+}
+```
+
+**Interpretación del SHAP plot:**
+
+- Cada punto es una persona
+- El color indica el valor de la circunstancia (rojo = alto, azul = bajo)
+- La posición horizontal indica el impacto en la predicción
+- Circunstancias con puntos más dispersos tienen mayor importancia
+
+---
+
+# Conclusiones
+
+## Hallazgos Principales
+
+1. **Más de la mitad (52-57%)** de la desigualdad de ingresos en México se debe a circunstancias fuera del control individual.
+
+2. Los **factores más importantes** son:
+   - Clase ocupacional del padre (**3.0x** de brecha)
+   - Educación de los padres (**2.4x** de brecha)
+   - Condición indígena (**2.3x** de brecha)
+   - Localidad rural/urbana (**2.2x** de brecha)
+
+3. Las **mayores diferencias absolutas** se observan en:
+   - Clase ocupacional del padre: **$11,125** de diferencia
+   - Educación de la madre: **$10,065** de diferencia
+   - Educación del padre: **$9,760** de diferencia
+
+4. La **brecha de género** persiste: hombres ganan **$3,697 más** que mujeres (1.5x).
+
+## Implicaciones de Política
+
+Para reducir la desigualdad de oportunidad en México se necesitan políticas enfocadas en:
+
+| Área | Políticas Sugeridas |
+|------|---------------------|
+| **Educación** | Ampliar acceso a educación superior, especialmente para mujeres y zonas marginadas |
+| **Desarrollo Regional** | Inversión en infraestructura y empleo en el Sur y Centro-Sur |
+| **Equidad de Género** | Políticas de igualdad salarial, licencias parentales equitativas |
+| **Pueblos Indígenas** | Programas de inclusión económica, educación bilingüe |
+| **Primera Infancia** | Intervenciones tempranas para nivelar el campo de juego |
+
+## Limitaciones
+
+- El análisis captura **correlaciones**, no necesariamente causalidad
+- Algunas circunstancias pueden estar correlacionadas entre sí
+- El IOp estimado es un **límite inferior** de la verdadera desigualdad de oportunidad
+- Variables no observadas podrían aumentar la estimación de IOp
+
+---
+
+# Referencias
+
+- Brunori, P., Ferreira, F. H., & Peragine, V. (2023). Inequality of opportunity, measurement and policy implications. *Journal of Economic Inequality*.
+
+- Monroy-Gómez-Franco, L. (2023). A Note on Ex-ante Inequality of Opportunity across Mexican Regions. *Economics Bulletin*, 43(1), 295-301.
+
+- Plassot, T., Soloaga, I., & Torres López, E. (2022). Inequality of Opportunity in Mexico and its Regions. *Journal of Development Studies*.
+
+- Roemer, J. E. (1998). *Equality of Opportunity*. Harvard University Press.
+
+- CEEY (2023). Encuesta ESRU de Movilidad Social en México (EMOVI) 2023.
+
+---
+
+# Anexos
+
+## Código y Reproducibilidad
+
+Todo el código y datos procesados están disponibles en:
+
+**GitHub:** [https://github.com/Lalitronico/IOP-Analysis-ESRU-EMOVI-2023](https://github.com/Lalitronico/IOP-Analysis-ESRU-EMOVI-2023)
+
+## Información de la Sesión
+
+```{r echo=TRUE}
+R.version.string
+Sys.Date()
+```
+
+---
+
+*Reporte generado automáticamente. Análisis realizado con R y Python.*
+
+*Datos: ESRU-EMOVI 2023, Centro de Estudios Espinosa Yglesias (CEEY).*

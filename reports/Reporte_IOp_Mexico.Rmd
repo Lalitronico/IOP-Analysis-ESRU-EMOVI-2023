@@ -1,0 +1,740 @@
+---
+title: "Desigualdad de Oportunidad en México"
+subtitle: "Análisis con ESRU-EMOVI 2023"
+author: "Eduardo"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = 'center')
+
+# Cargar paquetes
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+
+# Configurar directorio
+project_root <- "C:/Users/HP ZBOOK/Desktop/Inequality of Opportunity"
+```
+
+---
+
+# Resumen Ejecutivo
+
+Este estudio analiza la **Desigualdad de Oportunidad (IOp)** en México utilizando datos de la Encuesta ESRU-EMOVI 2023. La pregunta central es:
+
+> **¿Qué proporción de la desigualdad de ingresos se debe a circunstancias fuera del control individual?**
+
+## Hallazgo Principal
+
+```{r resultado-principal, echo=FALSE}
+# Crear tabla de resultado principal
+resultado <- data.frame(
+  Metrica = c("IOp (Random Forest)", "IOp (XGBoost)", "IOp (Árbol de Decisión)"),
+  Valor = c("52.6%", "53.5%", "55.4%"),
+  Interpretacion = c(
+    "Estimación principal",
+    "Con optimización de hiperparámetros",
+    "Modelo interpretable"
+  )
+)
+
+kable(resultado, col.names = c("Métrica", "Valor", "Interpretación"),
+      caption = "Resultados principales de IOp") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(1, bold = TRUE, background = "#e6f3ff")
+```
+
+**Conclusión:** Aproximadamente **52-55% de la desigualdad de ingresos** en México se debe a circunstancias fuera del control individual como la educación de los padres, el lugar de nacimiento y el sexo.
+
+---
+
+# 1. Introducción
+
+## 1.1 ¿Qué es la Desigualdad de Oportunidad?
+
+La **Desigualdad de Oportunidad (IOp)** mide qué proporción de la desigualdad total se debe a factores que las personas **no pueden controlar**, llamados **circunstancias**:
+
+- Educación de los padres
+- Ocupación de los padres
+- Región donde creciste
+- Sexo
+- Etnicidad
+- Si creciste en zona rural o urbana
+
+Bajo el marco de **John Roemer**, la desigualdad que proviene de estas circunstancias se considera **injusta** o **éticamente inaceptable**.
+
+## 1.2 Datos Utilizados
+
+```{r datos-info, echo=FALSE}
+info_datos <- data.frame(
+  Caracteristica = c("Encuesta", "Año", "Observaciones totales", "Casos completos para análisis", "Variable de resultado"),
+  Valor = c("ESRU-EMOVI", "2023", "17,843", "13,164", "Ingreso per cápita del hogar")
+)
+
+kable(info_datos, col.names = c("Característica", "Valor")) %>%
+  kable_styling(bootstrap_options = c("striped"), full_width = FALSE)
+```
+
+---
+
+# 2. Metodología
+
+## 2.1 Marco Conceptual
+
+Siguiendo a **Brunori et al. (2023)** y **Roemer (1998)**, utilizamos métodos de machine learning para:
+
+1. **Particionar** la población en "tipos" basados en circunstancias
+2. **Calcular** el ingreso promedio de cada tipo
+3. **Medir** qué proporción de la desigualdad total se explica por las diferencias entre tipos
+
+$$IOp = \frac{Gini(\mu_{tipos})}{Gini(Y)}$$
+
+Donde:
+- $Gini(\mu_{tipos})$ = Desigualdad entre los promedios de cada tipo
+- $Gini(Y)$ = Desigualdad total del ingreso
+
+## 2.2 Variables de Circunstancias
+
+```{r variables-tabla, echo=FALSE}
+variables <- data.frame(
+  Variable = c("educm", "educp", "clasep", "sexo", "region_14", "p21", "cohorte", "p111", "p112"),
+  Descripcion = c(
+    "Educación de la madre",
+    "Educación del padre",
+    "Ocupación del padre",
+    "Sexo",
+    "Región a los 14 años",
+    "Rural/Urbano a los 14 años",
+    "Cohorte de nacimiento",
+    "Habla lengua indígena",
+    "Tono de piel"
+  ),
+  Tipo = c("Categórica (4 niveles)", "Categórica (4 niveles)", "Categórica (6 niveles)",
+           "Binaria", "Categórica (5 regiones)", "Categórica (4 niveles)",
+           "Categórica", "Binaria", "Numérica (1-11)")
+)
+
+kable(variables, col.names = c("Variable", "Descripción", "Tipo")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE)
+```
+
+## 2.3 Modelos Utilizados
+
+| Modelo | Propósito |
+|--------|-----------|
+| **Árbol de Decisión** | Interpretabilidad - ver cómo se forman los tipos |
+| **Random Forest** | Estimación robusta - promedio de 200 árboles |
+| **Gradient Boosting** | Mayor poder predictivo |
+| **XGBoost + SHAP** | Interpretabilidad avanzada |
+
+---
+
+# 3. Resultados
+
+## 3.1 Estimaciones de IOp
+
+```{r iop-resultados, echo=FALSE}
+iop_results <- data.frame(
+  Modelo = c("Árbol de Decisión", "Random Forest", "Gradient Boosting", "XGBoost (optimizado)", "Random Forest (CV 5-fold)"),
+  IOp_Gini = c(0.554, 0.526, 0.568, 0.535, 0.515),
+  R2 = c(0.283, 0.259, 0.312, 0.345, 0.258),
+  Tipos = c("58", "-", "-", "-", "-")
+)
+
+iop_results %>%
+  mutate(
+    IOp_Gini = paste0(round(IOp_Gini * 100, 1), "%"),
+    R2 = paste0(round(R2 * 100, 1), "%")
+  ) %>%
+  kable(col.names = c("Modelo", "IOp (Gini)", "R²", "N° Tipos"),
+        caption = "Estimaciones de Desigualdad de Oportunidad") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(2, bold = TRUE, background = "#d4edda")
+```
+
+**Interpretación:** Todos los modelos coinciden en que aproximadamente **52-57%** de la desigualdad de ingresos se debe a circunstancias. El estimado principal (Random Forest) es **52.6%**.
+
+## 3.2 Importancia de las Circunstancias
+
+```{r varimp-plot, echo=FALSE, fig.width=10, fig.height=6}
+varimp <- data.frame(
+  Variable = c("Educación madre", "Región a los 14", "Sexo", "Educación padre",
+               "Rural/Urbano", "Ocupación padre", "Lengua indígena", "Cohorte", "Tono de piel"),
+  Importancia_RF = c(24.5, 20.5, 19.4, 11.2, 7.9, 6.8, 4.6, 4.6, 0.5),
+  Importancia_SHAP = c(12.9, 14.8, 21.7, 12.5, 11.8, 9.6, 4.4, 12.4, 0.0)
+)
+
+# Ordenar por importancia RF
+varimp$Variable <- factor(varimp$Variable, levels = varimp$Variable[order(varimp$Importancia_RF)])
+
+ggplot(varimp, aes(x = Variable, y = Importancia_RF)) +
+  geom_bar(stat = "identity", fill = "#3498db", alpha = 0.8) +
+  geom_text(aes(label = paste0(Importancia_RF, "%")), hjust = -0.1, size = 4) +
+  coord_flip() +
+  labs(
+    title = "Importancia de las Circunstancias",
+    subtitle = "¿Qué factores explican más la desigualdad de oportunidad?",
+    x = "",
+    y = "Importancia (%)",
+    caption = "Fuente: ESRU-EMOVI 2023. Método: Random Forest"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.text = element_text(size = 11)
+  ) +
+  scale_y_continuous(limits = c(0, 30))
+```
+
+### Hallazgos clave:
+
+1. **Educación de la madre (24.5%)**: El factor más importante. La educación materna determina fuertemente las oportunidades de los hijos.
+
+2. **Región a los 14 años (20.5%)**: Existe una fuerte desigualdad geográfica. Crecer en el Norte vs. el Sur tiene un impacto significativo.
+
+3. **Sexo (19.4%)**: La brecha de género sigue siendo un determinante importante del ingreso.
+
+4. **Educación del padre (11.2%)**: Complementa el efecto de la educación materna.
+
+5. **Rural/Urbano (7.9%)**: Crecer en una ciudad ofrece ventajas significativas.
+
+## 3.3 Ingreso Promedio por Circunstancia
+
+```{r cargar-datos-reales, echo=FALSE, message=FALSE, warning=FALSE}
+# Cargar los datos reales de EMOVI
+library(haven)
+
+data_path <- file.path(project_root, "data", "raw", "emovi", "Data", "entrevistado_2023.dta")
+
+if (file.exists(data_path)) {
+  df <- read_dta(data_path)
+
+  # Seleccionar variables
+  df_analysis <- df[, c("ingc_pc", "educp", "educm", "clasep", "sexo", "p111", "p112", "region_14", "cohorte", "p21")]
+
+  # Convertir haven_labelled a numérico
+  for (col in names(df_analysis)) {
+    df_analysis[[col]] <- as.numeric(df_analysis[[col]])
+  }
+
+  # Calcular ingreso
+  df_analysis$ln_income <- log(df_analysis$ingc_pc)
+  df_analysis <- df_analysis[is.finite(df_analysis$ln_income), ]
+  df_analysis$ingreso_pesos <- exp(df_analysis$ln_income)
+
+  # Convertir a factores SIN especificar niveles (usar los que existen)
+  df_analysis$sexo <- factor(df_analysis$sexo)
+  levels(df_analysis$sexo) <- c("Hombre", "Mujer")
+
+  df_analysis$educp <- factor(df_analysis$educp)
+  levels(df_analysis$educp) <- c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad")[1:nlevels(df_analysis$educp)]
+
+  df_analysis$educm <- factor(df_analysis$educm)
+  levels(df_analysis$educm) <- c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad")[1:nlevels(df_analysis$educm)]
+
+  df_analysis$region_14 <- factor(df_analysis$region_14)
+  levels(df_analysis$region_14) <- c("Norte", "Centro-Norte", "Centro", "Centro-Sur", "Sur")[1:nlevels(df_analysis$region_14)]
+
+  df_analysis$p21 <- factor(df_analysis$p21)
+  levels(df_analysis$p21) <- c("Ciudad", "Pueblo", "Rancheria", "NS")[1:nlevels(df_analysis$p21)]
+
+  df_analysis$p111 <- factor(df_analysis$p111)
+  levels(df_analysis$p111) <- c("Si", "No")[1:nlevels(df_analysis$p111)]
+
+  df_analysis$clasep <- factor(df_analysis$clasep)
+  levels(df_analysis$clasep) <- c("I-Alta", "II", "IIIa", "IIIb", "IVa-c", "V-VII")[1:nlevels(df_analysis$clasep)]
+
+  # Eliminar NA
+  df_analysis <- na.omit(df_analysis)
+
+  datos_cargados <- TRUE
+  cat("Datos cargados:", nrow(df_analysis), "observaciones\n")
+} else {
+  datos_cargados <- FALSE
+  cat("ERROR: No se encontró el archivo de datos\n")
+}
+```
+
+### 3.3.1 Por Educación de la Madre
+
+```{r ingreso-madre, echo=FALSE, fig.width=10, fig.height=5}
+if (datos_cargados) {
+  educm_tabla <- df_analysis %>%
+    group_by(educm) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(educm))
+
+  ggplot(educm_tabla, aes(x = educm, y = Ingreso, fill = educm)) +
+    geom_bar(stat = "identity", alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 5, fontface = "bold") +
+    scale_fill_viridis_d(option = "D", begin = 0.3, end = 0.9) +
+    labs(
+      title = "Ingreso Promedio según Educación de la Madre",
+      subtitle = "Ingreso per cápita mensual del hogar (pesos)",
+      x = "Educación de la madre",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(educm_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-madre, echo=FALSE}
+if (datos_cargados) {
+  educm_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Educación Madre", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.2 Por Educación del Padre
+
+```{r ingreso-padre, echo=FALSE, fig.width=10, fig.height=5}
+if (datos_cargados) {
+  educp_tabla <- df_analysis %>%
+    group_by(educp) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(educp))
+
+  ggplot(educp_tabla, aes(x = educp, y = Ingreso, fill = educp)) +
+    geom_bar(stat = "identity", alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 5, fontface = "bold") +
+    scale_fill_viridis_d(option = "C", begin = 0.3, end = 0.9) +
+    labs(
+      title = "Ingreso Promedio según Educación del Padre",
+      x = "Educación del padre",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(educp_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-padre, echo=FALSE}
+if (datos_cargados) {
+  educp_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Educación Padre", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.3 Por Sexo
+
+```{r ingreso-sexo, echo=FALSE, fig.width=7, fig.height=5}
+if (datos_cargados) {
+  sexo_tabla <- df_analysis %>%
+    group_by(sexo) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(sexo))
+
+  ggplot(sexo_tabla, aes(x = sexo, y = Ingreso, fill = sexo)) +
+    geom_bar(stat = "identity", width = 0.6, alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 6, fontface = "bold") +
+    scale_fill_manual(values = c("#3498db", "#e74c3c")) +
+    labs(
+      title = "Brecha de Género en el Ingreso",
+      x = "",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(sexo_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-sexo, echo=FALSE}
+brecha_genero <- 0
+if (datos_cargados) {
+  sexo_calc <- df_analysis %>%
+    group_by(sexo) %>%
+    summarise(N = n(), Ingreso = round(mean(ingreso_pesos), 0), .groups = "drop") %>%
+    filter(!is.na(sexo))
+
+  if (nrow(sexo_calc) == 2) {
+    brecha_genero <- sexo_calc$Ingreso[1] - sexo_calc$Ingreso[2]
+  }
+
+  sexo_calc %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Sexo", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+**Brecha de género:** Los hombres ganan en promedio **`r paste0("$", format(abs(brecha_genero), big.mark = ","))` pesos más** que las mujeres.
+
+### 3.3.4 Por Región a los 14 años
+
+```{r ingreso-region, echo=FALSE, fig.width=10, fig.height=5}
+if (datos_cargados) {
+  region_tabla <- df_analysis %>%
+    group_by(region_14) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(region_14)) %>%
+    arrange(desc(Ingreso))
+
+  region_tabla$region_14 <- factor(region_tabla$region_14, levels = region_tabla$region_14)
+
+  ggplot(region_tabla, aes(x = region_14, y = Ingreso, fill = Ingreso)) +
+    geom_bar(stat = "identity", alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 5, fontface = "bold") +
+    scale_fill_gradient(low = "#e74c3c", high = "#27ae60") +
+    labs(
+      title = "Ingreso Promedio por Región donde Creció",
+      subtitle = "Ordenado de mayor a menor ingreso",
+      x = "Región a los 14 años",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(region_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-region, echo=FALSE}
+if (datos_cargados) {
+  region_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Región", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.5 Por Tipo de Localidad (Rural/Urbano)
+
+```{r ingreso-rural, echo=FALSE, fig.width=9, fig.height=5}
+if (datos_cargados) {
+  rural_tabla <- df_analysis %>%
+    group_by(p21) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(p21)) %>%
+    arrange(desc(Ingreso))
+
+  rural_tabla$p21 <- factor(rural_tabla$p21, levels = rural_tabla$p21)
+
+  ggplot(rural_tabla, aes(x = p21, y = Ingreso, fill = Ingreso)) +
+    geom_bar(stat = "identity", alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 5, fontface = "bold") +
+    scale_fill_gradient(low = "#e67e22", high = "#2ecc71") +
+    labs(
+      title = "Ingreso Promedio por Tipo de Localidad donde Creció",
+      x = "Tipo de localidad a los 14 años",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(rural_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-rural, echo=FALSE}
+if (datos_cargados) {
+  rural_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Tipo Localidad", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.6 Por Ocupación del Padre
+
+```{r ingreso-ocupacion, echo=FALSE, fig.width=10, fig.height=5}
+if (datos_cargados) {
+  clasep_tabla <- df_analysis %>%
+    group_by(clasep) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(clasep)) %>%
+    arrange(desc(Ingreso))
+
+  clasep_tabla$clasep <- factor(clasep_tabla$clasep, levels = clasep_tabla$clasep)
+
+  ggplot(clasep_tabla, aes(x = clasep, y = Ingreso, fill = Ingreso)) +
+    geom_bar(stat = "identity", alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 4.5, fontface = "bold") +
+    scale_fill_gradient(low = "#9b59b6", high = "#1abc9c") +
+    labs(
+      title = "Ingreso Promedio por Ocupación del Padre",
+      subtitle = "I-Alta = Profesionales/Directivos, V-VII = Trabajadores manuales",
+      x = "Clase ocupacional del padre",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(clasep_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-ocupacion, echo=FALSE}
+if (datos_cargados) {
+  clasep_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Ocupación Padre", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.7 Por Condición Indígena
+
+```{r ingreso-indigena, echo=FALSE, fig.width=7, fig.height=5}
+if (datos_cargados) {
+  indigena_tabla <- df_analysis %>%
+    group_by(p111) %>%
+    summarise(
+      N = n(),
+      Ingreso = round(mean(ingreso_pesos), 0),
+      .groups = "drop"
+    ) %>%
+    filter(!is.na(p111))
+
+  ggplot(indigena_tabla, aes(x = p111, y = Ingreso, fill = p111)) +
+    geom_bar(stat = "identity", width = 0.6, alpha = 0.85) +
+    geom_text(aes(label = paste0("$", format(Ingreso, big.mark = ","))),
+              vjust = -0.5, size = 6, fontface = "bold") +
+    scale_fill_manual(values = c("#e74c3c", "#3498db")) +
+    labs(
+      title = "Ingreso Promedio según Habla de Lengua Indígena",
+      x = "¿Habla lengua indígena?",
+      y = "Ingreso promedio (pesos)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 16, face = "bold"), legend.position = "none") +
+    scale_y_continuous(labels = scales::comma, limits = c(0, max(indigena_tabla$Ingreso) * 1.15))
+}
+```
+
+```{r tabla-indigena, echo=FALSE}
+if (datos_cargados) {
+  indigena_tabla %>%
+    mutate(
+      Porcentaje = paste0(round(N / sum(N) * 100, 1), "%"),
+      Ingreso = paste0("$", format(Ingreso, big.mark = ","))
+    ) %>%
+    kable(col.names = c("Habla Lengua Indígena", "N", "Ingreso Promedio", "% Muestra")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+### 3.3.8 Resumen de Brechas
+
+```{r resumen-brechas, echo=FALSE}
+if (datos_cargados) {
+
+  # Calcular brechas directamente desde df_analysis
+  calc_brecha_var <- function(data, var) {
+    tabla <- data %>%
+      group_by(across(all_of(var))) %>%
+      summarise(Ingreso = mean(ingreso_pesos, na.rm = TRUE), .groups = "drop") %>%
+      filter(!is.na(Ingreso))
+
+    if (nrow(tabla) >= 2 && min(tabla$Ingreso) > 0) {
+      return(round(max(tabla$Ingreso) / min(tabla$Ingreso), 1))
+    } else {
+      return(NA_real_)
+    }
+  }
+
+  # Calcular cada brecha
+  brecha_educm <- calc_brecha_var(df_analysis, "educm")
+  brecha_educp <- calc_brecha_var(df_analysis, "educp")
+  brecha_sexo <- calc_brecha_var(df_analysis, "sexo")
+  brecha_region <- calc_brecha_var(df_analysis, "region_14")
+  brecha_rural <- calc_brecha_var(df_analysis, "p21")
+  brecha_clasep <- calc_brecha_var(df_analysis, "clasep")
+  brecha_indigena <- calc_brecha_var(df_analysis, "p111")
+
+  # Crear dataframe
+  brechas <- data.frame(
+    Circunstancia = c(
+      "Educación madre (Universidad vs Sin/Primaria)",
+      "Educación padre (Universidad vs Sin/Primaria)",
+      "Sexo (Hombre vs Mujer)",
+      "Región (mejor vs peor)",
+      "Localidad (Ciudad vs Ranchería)",
+      "Ocupación padre (I-Alta vs V-VII)",
+      "Lengua indígena (No vs Sí)"
+    ),
+    Brecha = c(brecha_educm, brecha_educp, brecha_sexo, brecha_region,
+               brecha_rural, brecha_clasep, brecha_indigena)
+  )
+
+  # Filtrar NA y ordenar
+  brechas <- brechas[!is.na(brechas$Brecha), ]
+
+  if (nrow(brechas) > 0) {
+    brechas <- brechas[order(-brechas$Brecha), ]
+    brechas$Interpretacion <- paste0("Gana ", brechas$Brecha, "x más")
+
+    kable(brechas, col.names = c("Circunstancia", "Brecha", "Interpretación"),
+          caption = "Resumen de brechas de ingreso por circunstancia",
+          row.names = FALSE) %>%
+      kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+      row_spec(1, bold = TRUE, background = "#ffe6e6")
+  } else {
+    cat("No se pudieron calcular las brechas.")
+  }
+}
+```
+
+> **Conclusión:** Las mayores brechas se observan en la **educación de los padres** y la **ocupación del padre**. Una persona cuya madre tiene universidad gana más del doble que alguien cuya madre no terminó la primaria.
+
+---
+
+# 4. Visualización del Árbol de Decisión
+
+El árbol de decisión muestra cómo las circunstancias dividen a la población en grupos con diferentes ingresos esperados.
+
+```{r arbol-imagen, echo=FALSE, out.width="100%", fig.cap="Árbol de decisión simplificado mostrando la partición en tipos"}
+# Mostrar imagen del árbol si existe
+arbol_path <- file.path(project_root, "outputs/figures/arbol_simplificado.png")
+if (file.exists(arbol_path)) {
+  knitr::include_graphics(arbol_path)
+} else {
+  cat("Imagen del árbol no encontrada. Ejecutar visualize_trees_mejorado.R primero.")
+}
+```
+
+**Cómo leer el árbol:**
+
+- Cada **nodo interno** muestra una variable y el criterio de división
+- Cada **nodo terminal** (hoja) representa un "tipo" de personas con circunstancias similares
+- Los **boxplots** muestran la distribución del log(ingreso) en cada tipo
+
+---
+
+# 5. Comparación con la Literatura
+
+```{r literatura, echo=FALSE}
+literatura <- data.frame(
+  Estudio = c("Este estudio (2023)", "Monroy-Gómez-Franco (2023)", "Plassot et al. (2022)"),
+  Datos = c("EMOVI 2023", "EMOVI 2017", "EMOVI 2017"),
+  IOp = c("52-57%", "≥48%", "45-55%"),
+  Metodo = c("ctree/Random Forest/XGBoost", "Conditional Inference Trees", "Machine Learning")
+)
+
+kable(literatura, col.names = c("Estudio", "Datos", "IOp", "Método"),
+      caption = "Comparación con estudios previos para México") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+Nuestros resultados son **consistentes** con la literatura previa. El ligero aumento en IOp (de ~48% a ~53%) podría reflejar cambios reales en la desigualdad de oportunidad entre 2017 y 2023, o diferencias metodológicas menores.
+
+---
+
+# 6. Conclusiones
+
+## 6.1 Hallazgos Principales
+
+1. **Más de la mitad (52-57%) de la desigualdad de ingresos** en México se debe a circunstancias fuera del control individual.
+
+2. Los **tres factores más importantes** son:
+   - Educación de la madre (24.5%)
+   - Región donde creciste (20.5%)
+   - Sexo (19.4%)
+
+3. Una persona cuya madre tiene universidad gana **2.4 veces más** que alguien cuya madre no terminó primaria.
+
+4. Existe una **brecha de género significativa** que no puede atribuirse al esfuerzo individual.
+
+## 6.2 Implicaciones de Política
+
+Estos resultados sugieren que para reducir la desigualdad de oportunidad en México se necesitan políticas enfocadas en:
+
+- **Educación**: Especialmente la educación de las mujeres (futuras madres)
+- **Desarrollo regional**: Reducir las brechas entre regiones
+- **Equidad de género**: Políticas para cerrar la brecha salarial
+- **Primera infancia**: Intervenciones tempranas para nivelar el campo de juego
+
+## 6.3 Limitaciones
+
+- El análisis captura **correlaciones**, no necesariamente causalidad
+- Algunas circunstancias pueden estar correlacionadas entre sí
+- El IOp estimado es un **límite inferior** de la verdadera desigualdad de oportunidad
+
+---
+
+# 7. Referencias
+
+- Brunori, P., Ferreira, F. H., & Peragine, V. (2023). Inequality of opportunity, measurement and policy implications. *Journal of Economic Inequality*.
+
+- Monroy-Gómez-Franco, L. (2023). A Note on Ex-ante Inequality of Opportunity across Mexican Regions. *Economics Bulletin*, 43(1), 295-301.
+
+- Roemer, J. E. (1998). *Equality of Opportunity*. Harvard University Press.
+
+- CEEY (2023). Encuesta ESRU de Movilidad Social en México (EMOVI) 2023.
+
+---
+
+# Anexo: Código y Reproducibilidad
+
+Todo el código y datos procesados están disponibles en:
+
+**GitHub:** [https://github.com/Lalitronico/IOP-Analysis-ESRU-EMOVI-2023](https://github.com/Lalitronico/IOP-Analysis-ESRU-EMOVI-2023)
+
+```{r session-info, echo=FALSE}
+cat("Análisis realizado con R versión", R.version$version.string, "\n")
+cat("Fecha:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"))
+```

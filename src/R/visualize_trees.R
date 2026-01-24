@@ -40,18 +40,8 @@ lapply(required_packages, library, character.only = TRUE)
 # 2. CONFIGURACIÓN DE RUTAS
 # ------------------------------------------------------------------------------
 
-# Detectar directorio del proyecto automáticamente
-# Si estás en RStudio, usar el directorio del proyecto
-if (Sys.getenv("RSTUDIO") == "1") {
-  project_root <- rstudioapi::getActiveProject()
-  if (is.null(project_root)) {
-    project_root <- dirname(rstudioapi::getActiveDocumentContext()$path)
-    project_root <- dirname(dirname(project_root))  # Subir dos niveles desde src/R
-  }
-} else {
-  # Si no estás en RStudio, definir manualmente
-  project_root <- "C:/Users/HP ZBOOK/Desktop/Inequality of Opportunity"
-}
+# Usar el directorio de trabajo actual (ya configurado con setwd)
+project_root <- getwd()
 
 # Rutas
 data_path <- file.path(project_root, "data", "raw", "emovi", "Data", "entrevistado_2023.dta")
@@ -84,28 +74,42 @@ outcome_var <- "ingc_pc"
 
 # Seleccionar variables relevantes
 df_analysis <- df %>%
-  select(all_of(c(outcome_var, circumstance_vars, "factor"))) %>%
-  # Transformar a log del ingreso
-  mutate(ln_income = log(ingc_pc)) %>%
-  # Eliminar valores faltantes e infinitos
-  filter(!is.na(ln_income) & !is.infinite(ln_income)) %>%
-  # Convertir variables a factores con etiquetas descriptivas
-  mutate(
-    sexo = factor(sexo, levels = c(1, 2), labels = c("Hombre", "Mujer")),
-    educp = factor(educp, levels = 1:4,
-                   labels = c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad")),
-    educm = factor(educm, levels = 1:4,
-                   labels = c("Sin/Primaria", "Secundaria", "Preparatoria", "Universidad")),
-    clasep = factor(clasep, levels = 1:6,
-                    labels = c("I-Alta", "II", "IIIa", "IIIb", "IVa-c", "V-VII")),
-    p111 = factor(p111, levels = c(1, 2), labels = c("Sí", "No")),
-    region_14 = factor(region_14, levels = 1:5,
-                       labels = c("Norte", "Centro-Norte", "Centro", "Centro-Sur", "Sur")),
-    p21 = factor(p21, levels = 1:4,
-                 labels = c("Ciudad", "Pueblo", "Ranchería", "NS"))
-  ) %>%
-  # Eliminar filas con NA en cualquier variable
-  drop_na()
+  select(all_of(c(outcome_var, circumstance_vars, "factor")))
+
+# Convertir variables de haven_labelled a valores simples
+df_analysis <- as.data.frame(lapply(df_analysis, function(x) {
+  if (inherits(x, "haven_labelled")) {
+    return(as.numeric(x))
+  }
+  return(x)
+}))
+
+# Crear log del ingreso
+df_analysis$ln_income <- log(df_analysis$ingc_pc)
+
+# Eliminar infinitos y NA en el outcome
+df_analysis <- df_analysis[is.finite(df_analysis$ln_income), ]
+
+# Convertir a factores (sin especificar niveles, usar los que existen)
+df_analysis$sexo <- factor(df_analysis$sexo)
+df_analysis$educp <- factor(df_analysis$educp)
+df_analysis$educm <- factor(df_analysis$educm)
+df_analysis$clasep <- factor(df_analysis$clasep)
+df_analysis$p111 <- factor(df_analysis$p111)
+df_analysis$region_14 <- factor(df_analysis$region_14)
+df_analysis$p21 <- factor(df_analysis$p21)
+df_analysis$cohorte <- factor(df_analysis$cohorte)
+# p112 (tono de piel) se mantiene numérico
+
+# Eliminar filas con NA en las circunstancias
+df_analysis <- na.omit(df_analysis)
+
+# Mostrar resumen de los datos
+cat("\nResumen de variables:\n")
+cat("- sexo:", nlevels(df_analysis$sexo), "niveles\n")
+cat("- educp:", nlevels(df_analysis$educp), "niveles\n")
+cat("- educm:", nlevels(df_analysis$educm), "niveles\n")
+cat("- region_14:", nlevels(df_analysis$region_14), "niveles\n")
 
 cat("Casos completos para análisis:", nrow(df_analysis), "\n")
 
@@ -115,8 +119,9 @@ cat("Casos completos para análisis:", nrow(df_analysis), "\n")
 
 cat("\n--- Ajustando Conditional Inference Tree (ctree) ---\n")
 
-# Fórmula del modelo
-formula_iop <- as.formula(paste("ln_income ~", paste(circumstance_vars, collapse = " + ")))
+# Fórmula del modelo (usar solo las variables que funcionan bien)
+vars_for_tree <- c("sexo", "educp", "educm", "clasep", "region_14", "cohorte", "p21")
+formula_iop <- as.formula(paste("ln_income ~", paste(vars_for_tree, collapse = " + ")))
 
 # Configuración del árbol
 ctrl_ctree <- ctree_control(
@@ -172,13 +177,17 @@ cat("Guardado: ctree_simple.png\n")
 
 cat("\n--- Ajustando árbol rpart (alternativa) ---\n")
 
-# Convertir factores a numéricos para rpart (maneja mejor)
-df_rpart <- df_analysis %>%
-  mutate(across(where(is.factor), as.numeric))
+# Convertir factores a numéricos para rpart
+df_rpart <- df_analysis
+for (col in names(df_rpart)) {
+  if (is.factor(df_rpart[[col]])) {
+    df_rpart[[col]] <- as.numeric(df_rpart[[col]])
+  }
+}
 
-# Ajustar rpart
+# Ajustar rpart (mismas variables que ctree)
 rpart_model <- rpart(
-  ln_income ~ educp + educm + clasep + sexo + p111 + p112 + region_14 + cohorte + p21,
+  ln_income ~ sexo + educp + educm + clasep + region_14 + cohorte + p21,
   data = df_rpart,
   method = "anova",
   control = rpart.control(
