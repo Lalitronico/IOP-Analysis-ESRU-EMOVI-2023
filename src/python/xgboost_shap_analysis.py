@@ -81,6 +81,13 @@ def prepare_features(df):
     y = df['ln_income'].copy()
     weights = df[WEIGHT_VAR].copy()
 
+    # Special handling for p112 (PERLA scale: A-K -> 1-11)
+    if 'p112' in X.columns:
+        if X['p112'].dtype == 'object' or str(X['p112'].dtype) == 'str':
+            perla_map = {chr(65+i): i+1 for i in range(11)}  # A=1, B=2, ..., K=11
+            X['p112'] = X['p112'].map(perla_map)
+            print(f"  Converted p112 from PERLA letters (A-K) to numeric (1-11)")
+
     # Convert all to numeric (already should be, but ensure)
     for col in X.columns:
         X[col] = pd.to_numeric(X[col], errors='coerce')

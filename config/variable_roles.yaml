@@ -130,7 +130,8 @@ circumstances:
       type: "ordinal"
       range: [1, 11]
       missing_pct: 0.0
-      notes: "1=lightest, 11=darkest"
+      notes: "1=lightest, 11=darkest. IMPORTANT: Raw data coded as A-K (string), requires conversion to 1-11 numeric."
+      encoding_fix: "A=1, B=2, ..., K=11"
 
     - name: "region_14"
       description: "Region of residence at age 14 (5 regions)"

@@ -179,19 +179,29 @@ Cuatro procesos culturales que producen desigualdad:
 
 ---
 
-### 9. Tono de Piel (0% de importancia SHAP)
+### 9. Tono de Piel (3.8% de importancia SHAP)
 
-**Proceso Cultural**: **Racialización** (potencialmente subestimado)
+**Proceso Cultural**: **Racialización** (Colorismo)
 
-**Hallazgo cuantitativo**: SHAP = 0% es anómalo y requiere investigación.
+**Hallazgo cuantitativo**: Después de corregir el problema de codificación (variable originalmente en formato string A-K, convertida a numérico 1-11), el tono de piel muestra una contribución de 3.8%.
 
-**Posibles explicaciones**:
-1. **Problema técnico**: Variable mal codificada o con poca varianza
-2. **Colinealidad**: Correlación alta con otras variables que capturan el efecto
-3. **Mediación**: Efecto del colorismo mediado por educación y ocupación
-4. **Sesgo de reporte**: Autoidentificación de tono sesgada
+**Nota metodológica**: La variable p112 usa la escala PERLA (A=más claro, K=más oscuro). La correlación con ingreso es positiva débil (r=0.065), indicando que tonos más claros se asocian con mayores ingresos.
 
-**Recomendación**: Verificar distribución de p112 y considerar modelos que capturen mediación.
+**Interpretación cultural**:
+> El colorismo opera como proceso de **racialización** donde el tono de piel funciona como marcador fenotípico que activa estereotipos y discriminación.
+
+**Mecanismos específicos**:
+- **Discriminación directa**: Preferencia por candidatos de piel más clara en contratación
+- **Segregación ocupacional**: Concentración de personas de piel oscura en empleos de menor remuneración
+- **Capital social diferenciado**: Redes sociales segregadas por apariencia fenotípica
+- **Sesgo institucional**: Trato diferencial en sistema educativo y servicios
+
+**Importancia relativamente baja (3.8%)**: Puede explicarse por:
+1. Distribución concentrada en tonos medios (F-G representan 58% de la muestra)
+2. Correlación moderada con educación parental (r≈0.11)
+3. Efecto parcialmente mediado por otras circunstancias
+
+**Framework Lamont**: Ejemplo de **identificación** fenotípica que habilita **racionalización** ("el color no importa, lo que importa es el esfuerzo").
 
 ---
 
@@ -199,12 +209,14 @@ Cuatro procesos culturales que producen desigualdad:
 
 | Proceso | Circunstancias Asociadas | Contribución Combinada |
 |---------|--------------------------|------------------------|
-| **Identificación de Género** | Sexo | 21.7% |
-| **Estigmatización Espacial** | Región, Rural/Urbano | 26.6% |
-| **Estandarización Educativa** | Educ. madre, Educ. padre | 25.4% |
-| **Evaluación Ocupacional** | Clase padre | 9.6% |
-| **Racialización** | Lengua indígena, (Tono de piel) | 4.4%+ |
-| **Efectos de Período** | Cohorte | 12.4% |
+| **Identificación de Género** | Sexo | 21.4% |
+| **Estigmatización Espacial** | Región, Rural/Urbano | 26.4% |
+| **Estandarización Educativa** | Educ. madre, Educ. padre | 23.7% |
+| **Evaluación Ocupacional** | Clase padre | 8.7% |
+| **Racialización** | Lengua indígena, Tono de piel | 7.9% |
+| **Efectos de Período** | Cohorte | 12.0% |
+
+*Nota: Valores actualizados 2026-01-25 tras corrección de codificación de p112*
 
 ---
 

@@ -25,14 +25,23 @@
 - Síntesis de procesos dominantes
 - Implicaciones para política pública
 
+## Correcciones Realizadas ✅
+
+**Variable p112 (Skin Tone) - CORREGIDO:**
+- Problema: Variable codificada como STRING (A-K) en lugar de numérico
+- Solución: Conversión A-K → 1-11 en `xgboost_shap_analysis.py`
+- Resultado: SHAP pasó de 0% a 3.78%
+- Diagnóstico guardado en: `outputs/tables/p112_diagnostic.txt`
+
+**Archivos de dependencias creados:**
+- `requirements.txt` (Python)
+- `src/R/generate_renv_lock.R` (para generar renv.lock)
+
 ## Pendiente ⏳
 
-1. Corregir issues de reproducibilidad:
-   - Crear renv.lock / requirements.txt
-   - Verificar variable p112 (SHAP = 0)
-   - Ejecutar sensitivity analysis
-
-2. Auditoría final (objetivo: todo "Excelente")
+1. Ejecutar `generate_renv_lock.R` para crear renv.lock
+2. Ejecutar sensitivity analysis (`06_sensitivity_analysis.R`)
+3. Auditoría final (objetivo: todo "Excelente")
 
 ## Archivos Clave
 
@@ -42,12 +51,18 @@
 - `src/R/06_sensitivity_analysis.R` - Análisis de sensibilidad
 - `outputs/tables/shap_importance.csv` - Resultados SHAP
 
-## Resultados IOp Principales
+## Resultados IOp Principales (Actualizados)
 
 ```
-IOp Share: 52-56% (Gini-based)
-Top circunstancias:
-  1. Sexo: 21.7%
-  2. Región: 14.8%
-  3. Educación madre: 12.9%
+IOp Share: 53.8% (Gini-based), 34.1% (R²)
+Top circunstancias (SHAP):
+  1. Sexo: 21.4%
+  2. Región: 14.4%
+  3. Educación madre: 12.2%
+  4. Rural/Urbano: 12.0%
+  5. Cohorte: 12.0%
+  6. Educación padre: 11.5%
+  7. Clase padre: 8.7%
+  8. Lengua indígena: 4.1%
+  9. Tono de piel: 3.8%  <-- CORREGIDO (antes 0%)
 ```

@@ -1,10 +1,10 @@
 variable,variable_label,mean_abs_shap,std_shap,importance_pct
-sexo,Sex,0.17167884,0.026720371,21.66
-region_14,Region at 14,0.11712086,0.056883104,14.78
-educm,Mother's Education,0.1024195,0.0675428,12.92
-educp,Father's Education,0.09938789,0.07500305,12.54
-cohorte,Birth Cohort,0.09787543,0.05136128,12.35
-p21,Rural/Urban at 14,0.09364411,0.062440585,11.82
-clasep,Father's Occupation,0.07594939,0.06378912,9.58
-p111,Indigenous Language,0.034463853,0.069016874,4.35
-p112,Skin Tone,0.0,0.0,0.0
+sexo,Sex,0.17351945,0.026448531,21.42
+region_14,Region at 14,0.11660937,0.05476669,14.39
+educm,Mother's Education,0.09854803,0.06605854,12.17
+p21,Rural/Urban at 14,0.0969913,0.065918304,11.97
+cohorte,Birth Cohort,0.09686184,0.049927946,11.96
+educp,Father's Education,0.09309853,0.070564836,11.49
+clasep,Father's Occupation,0.07048318,0.060063083,8.7
+p111,Indigenous Language,0.033339776,0.06411714,4.12
+p112,Skin Tone,0.030641725,0.035606485,3.78
