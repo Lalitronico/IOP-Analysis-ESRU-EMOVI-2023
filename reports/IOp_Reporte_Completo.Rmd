@@ -1,0 +1,471 @@
+---
+title: "Desigualdad de Oportunidades en México"
+subtitle: "Análisis con ESRU-EMOVI 2023"
+author: "Proyecto IOp"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+    fig_width: 10
+    fig_height: 7
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center"
+)
+
+# Cargar paquetes
+library(tidyverse)
+library(haven)
+library(partykit)
+library(knitr)
+library(kableExtra)
+library(scales)
+```
+
+---
+
+# Resumen Ejecutivo
+
+Este reporte presenta un análisis de **Desigualdad de Oportunidades (IOp)** para México utilizando datos de la encuesta ESRU-EMOVI 2023. Los principales hallazgos son:
+
+- **IOp Share: 50-54%** de la desigualdad de ingresos está asociada con circunstancias fuera del control individual
+- Las **tres circunstancias más importantes** son: sexo (21%), región de origen (14%), y educación de los padres (24% combinado)
+- Los resultados son **robustos** a diferentes especificaciones metodológicas
+- La interpretación sociológica revela procesos de **identificación de género**, **estigmatización espacial** y **estandarización educativa**
+
+---
+
+# 1. Marco Teórico
+
+## 1.1 El Framework de Roemer
+
+Siguiendo a Roemer (1998), distinguimos entre:
+
+| Concepto | Definición | Ejemplos |
+|----------|------------|----------|
+| **Circunstancias** | Factores fuera del control individual | Sexo, origen familiar, región de nacimiento |
+| **Esfuerzo** | Factores bajo control individual | Decisiones educativas, intensidad laboral |
+
+La **Desigualdad de Oportunidades (IOp)** mide qué proporción de la desigualdad total se debe a circunstancias.
+
+$$IOp = \frac{Desigualdad_{entre\ tipos}}{Desigualdad_{total}}$$
+
+## 1.2 Procesos Culturales (Lamont et al., 2014)
+
+Complementamos el análisis cuantitativo con el framework de **procesos culturales**:
+
+```{r echo=FALSE}
+procesos <- tibble(
+  Proceso = c("Identificación", "Racialización", "Estigmatización", "Estandarización", "Evaluación"),
+  Definición = c(
+    "Construcción de categorías sociales (género, etnia)",
+    "Creación de fronteras étnico-raciales",
+    "Marcaje de grupos como inferiores",
+    "Normas que definen mérito y valía",
+    "Criterios para juzgar competencia"
+  ),
+  `Circunstancia Asociada` = c(
+    "Sexo",
+    "Lengua indígena, Tono de piel",
+    "Origen rural, Región Sur",
+    "Educación de padres",
+    "Ocupación del padre"
+  )
+)
+
+kable(procesos, caption = "Procesos culturales y circunstancias") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+---
+
+# 2. Datos y Metodología
+
+## 2.1 Fuente de Datos
+
+```{r cargar-datos}
+# Cargar datos EMOVI 2023
+df <- read_dta(here::here("data/raw/emovi/Data/entrevistado_2023.dta"))
+
+# Preparar datos
+df <- df %>%
+  mutate(across(where(is.labelled), ~as.numeric(.))) %>%
+  mutate(
+    ln_ingc_pc = log(ingc_pc),
+    p112 = match(p112, LETTERS[1:11])  # Convertir A-K a 1-11
+  )
+
+n_total <- nrow(df)
+n_complete <- df %>%
+  select(ln_ingc_pc, educp, educm, sexo, region_14, cohorte) %>%
+  drop_na() %>%
+  nrow()
+```
+
+| Característica | Valor |
+|----------------|-------|
+| **Encuesta** | ESRU-EMOVI 2023 |
+| **Institución** | Centro de Estudios Espinosa Yglesias |
+| **Observaciones totales** | `r format(n_total, big.mark=",")` |
+| **Casos completos (análisis)** | `r format(n_complete, big.mark=",")` |
+
+## 2.2 Variables
+
+### Outcome (Variable Dependiente)
+
+- **Ingreso per cápita del hogar** (logaritmo natural)
+
+### Circunstancias (Variables Independientes)
+
+```{r variables-tabla, echo=FALSE}
+vars_tabla <- tibble(
+  Variable = c("sexo", "region_14", "educp", "educm", "clasep", "cohorte", "p21", "p111", "p112"),
+  Descripción = c(
+    "Sexo (1=Hombre, 2=Mujer)",
+    "Región a los 14 años (5 regiones)",
+    "Educación del padre (4 niveles)",
+    "Educación de la madre (4 niveles)",
+    "Clase ocupacional del padre",
+    "Cohorte de nacimiento",
+    "Origen rural/urbano a los 14",
+    "Habla lengua indígena",
+    "Tono de piel (escala PERLA 1-11)"
+  ),
+  `Proceso Cultural` = c(
+    "Identificación de género",
+    "Estigmatización espacial",
+    "Estandarización",
+    "Estandarización",
+    "Evaluación ocupacional",
+    "Efectos de período",
+    "Estigmatización rural",
+    "Racialización",
+    "Racialización (colorismo)"
+  )
+)
+
+kable(vars_tabla, caption = "Variables de circunstancias y procesos culturales asociados") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+## 2.3 Métodos
+
+1. **Conditional Inference Trees (ctree)** - Partición óptima basada en tests de permutación
+2. **XGBoost + SHAP** - Gradient boosting con explicabilidad
+3. **Análisis de Sensibilidad** - Múltiples especificaciones de circunstancias
+
+---
+
+# 3. Resultados
+
+## 3.1 Análisis de Sensibilidad
+
+```{r sensitivity-analysis}
+# Función Gini simple
+calc_gini <- function(x) {
+  x <- x[!is.na(x) & x > 0]
+  n <- length(x)
+  if (n == 0) return(NA)
+  x <- sort(x)
+  G <- sum((2 * seq_along(x) - n - 1) * x)
+  G / (n * sum(x))
+}
+
+# Función IOp
+calc_iop <- function(y, y_hat) {
+  gini_total <- calc_gini(exp(y))
+  gini_between <- calc_gini(exp(y_hat))
+  rsq <- var(y_hat, na.rm = TRUE) / var(y, na.rm = TRUE)
+  list(iop_gini = gini_between / gini_total, iop_rsq = rsq)
+}
+
+# Definir conjuntos de circunstancias
+sets <- list(
+  minimal = c("educp", "educm", "sexo", "region_14"),
+  standard = c("educp", "educm", "clasep", "sexo", "region_14", "cohorte", "p21"),
+  with_ethnicity = c("educp", "educm", "clasep", "sexo", "region_14", "cohorte", "p21", "p111", "p112")
+)
+
+# Ejecutar análisis
+results <- list()
+
+for (set_name in names(sets)) {
+  vars <- sets[[set_name]]
+  available <- vars[vars %in% names(df)]
+
+  df_sub <- df %>%
+    select(ln_ingc_pc, all_of(available)) %>%
+    drop_na()
+
+  if (nrow(df_sub) < 500) next
+
+  formula <- as.formula(paste("ln_ingc_pc ~", paste(available, collapse = " + ")))
+  ctrl <- ctree_control(mincriterion = 0.95, minsplit = 100, maxdepth = 6)
+
+  model <- tryCatch(
+    ctree(formula, data = df_sub, control = ctrl),
+    error = function(e) NULL
+  )
+
+  if (is.null(model)) next
+
+  y <- df_sub$ln_ingc_pc
+  y_hat <- predict(model)
+  n_types <- length(unique(predict(model, type = "node")))
+
+  iop <- calc_iop(y, y_hat)
+
+  results[[set_name]] <- tibble(
+    Especificación = set_name,
+    Variables = length(available),
+    N = nrow(df_sub),
+    Tipos = n_types,
+    `IOp (Gini)` = paste0(round(iop$iop_gini * 100, 1), "%"),
+    `IOp (R²)` = paste0(round(iop$iop_rsq * 100, 1), "%")
+  )
+}
+
+sensitivity_df <- bind_rows(results)
+
+kable(sensitivity_df, caption = "Resultados de Sensibilidad: IOp bajo diferentes especificaciones") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(2, bold = TRUE, background = "#e6f3ff")
+```
+
+### Interpretación
+
+Los resultados muestran que el **IOp es robusto** a diferentes especificaciones:
+
+- **Rango de IOp (Gini):** 47-51%
+- **Especificación preferida (standard):** 50.6%
+- Agregar variables étnicas (p111, p112) no cambia sustancialmente los resultados
+
+## 3.2 Importancia de Circunstancias (SHAP)
+
+Los siguientes resultados provienen del análisis XGBoost + SHAP:
+
+```{r shap-results}
+# Leer resultados SHAP pre-calculados
+shap_file <- here::here("outputs/tables/shap_importance.csv")
+
+if (file.exists(shap_file)) {
+  shap_df <- read_csv(shap_file) %>%
+    arrange(desc(importance_pct)) %>%
+    mutate(
+      Circunstancia = variable_label,
+      `Importancia (%)` = importance_pct,
+      `Proceso Cultural` = case_when(
+        variable == "sexo" ~ "Identificación de género",
+        variable == "region_14" ~ "Estigmatización espacial",
+        variable == "educm" ~ "Estandarización (capital cultural)",
+        variable == "educp" ~ "Estandarización",
+        variable == "cohorte" ~ "Efectos de período",
+        variable == "p21" ~ "Estigmatización rural",
+        variable == "clasep" ~ "Evaluación ocupacional",
+        variable == "p111" ~ "Racialización",
+        variable == "p112" ~ "Racialización (colorismo)",
+        TRUE ~ "Otro"
+      )
+    ) %>%
+    select(Circunstancia, `Importancia (%)`, `Proceso Cultural`)
+
+  kable(shap_df, caption = "Importancia SHAP de circunstancias") %>%
+    kable_styling(bootstrap_options = c("striped", "hover")) %>%
+    row_spec(1:3, bold = TRUE)
+} else {
+  cat("Archivo SHAP no encontrado. Ejecutar primero xgboost_shap_analysis.py")
+}
+```
+
+### Visualización
+
+```{r shap-plot, fig.cap="Importancia de circunstancias según SHAP"}
+if (exists("shap_df")) {
+  shap_df %>%
+    ggplot(aes(x = reorder(Circunstancia, `Importancia (%)`),
+               y = `Importancia (%)`,
+               fill = `Proceso Cultural`)) +
+    geom_col() +
+    geom_text(aes(label = paste0(`Importancia (%)`, "%")),
+              hjust = -0.1, size = 3.5) +
+    coord_flip() +
+    scale_fill_brewer(palette = "Set2") +
+    scale_y_continuous(limits = c(0, 25)) +
+    labs(
+      title = "Contribución de Circunstancias a la Desigualdad de Oportunidades",
+      subtitle = "Basado en valores SHAP (XGBoost)",
+      x = NULL,
+      y = "Importancia (%)",
+      fill = "Proceso Cultural"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(face = "bold"),
+      plot.title = element_text(face = "bold", size = 14)
+    )
+}
+```
+
+---
+
+# 4. Interpretación Sociológica
+
+## 4.1 Síntesis de Procesos Dominantes
+
+```{r procesos-sintesis, echo=FALSE}
+sintesis <- tibble(
+  `Proceso Cultural` = c(
+    "Identificación de género",
+    "Estigmatización espacial",
+    "Estandarización educativa",
+    "Evaluación ocupacional",
+    "Racialización",
+    "Efectos de período"
+  ),
+  Circunstancias = c(
+    "Sexo",
+    "Región + Rural/Urbano",
+    "Educación madre + padre",
+    "Clase ocupacional padre",
+    "Lengua indígena + Tono de piel",
+    "Cohorte"
+  ),
+  `Contribución (%)` = c("21.4%", "26.4%", "23.7%", "8.7%", "7.9%", "12.0%")
+)
+
+kable(sintesis, caption = "Procesos culturales dominantes en México") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(1:3, bold = TRUE, background = "#fff3cd")
+```
+
+## 4.2 Análisis por Proceso
+
+### Identificación de Género (21.4%)
+
+> El sexo es la circunstancia con mayor contribución predictiva a la desigualdad de ingresos.
+
+**Mecanismos:**
+
+- **Segregación ocupacional:** Canalización hacia sectores "feminizados" de menor remuneración
+- **Penalización por maternidad:** Discriminación estadística contra mujeres en edad reproductiva
+- **Brecha salarial directa:** Menor pago por trabajo equivalente
+- **Trabajo no remunerado:** Carga desproporcionada de trabajo doméstico
+
+**Actores reproductores:** Empleadores, familias, Estado, instituciones educativas
+
+### Estigmatización Espacial (26.4%)
+
+> Las disparidades regionales operan a través de estigmatización que marca territorios como "desarrollados" o "atrasados".
+
+**Mecanismos:**
+
+- **Concentración de capital:** Industria en el Norte y Centro
+- **Infraestructura educativa:** Calidad diferencial por región
+- **Redes de empleo:** Contactos geográficamente concentrados
+- **Narrativas culturales:** "El Norte trabaja, el Sur descansa"
+
+### Estandarización Educativa (23.7%)
+
+> La educación parental opera como mecanismo de transmisión de capital cultural.
+
+**Mecanismos:**
+
+- **Acompañamiento escolar:** Capacidad de ayudar con tareas
+- **Aspiraciones educativas:** Expectativas sobre nivel educativo de hijos
+- **Redes sociales:** Acceso a información sobre oportunidades
+
+**Conexión con meritocracia:** La educación funciona como estándar de mérito socialmente legitimado que racionaliza la desigualdad.
+
+### Racialización (7.9%)
+
+> Hablar lengua indígena y el tono de piel activan procesos de racialización y estigmatización.
+
+**Nota metodológica:** La contribución relativamente baja puede deberse a:
+
+1. Baja prevalencia de hablantes de lengua indígena en la muestra
+2. Correlación con otras circunstancias (región, ruralidad)
+3. Efectos mediados por educación y ocupación
+
+---
+
+# 5. Implicaciones de Política
+
+## 5.1 Caveat Fundamental
+
+> **IMPORTANTE:** IOp mide *asociación*, NO *causalidad*.
+
+Los hallazgos indican *dónde* se concentra la desigualdad, no qué intervenciones serían efectivas. Se requiere análisis causal separado.
+
+## 5.2 Recomendaciones por Proceso
+
+```{r politicas, echo=FALSE}
+politicas <- tibble(
+  Proceso = c(
+    "Identificación de género",
+    "Estigmatización espacial",
+    "Estandarización educativa",
+    "Racialización"
+  ),
+  `Políticas Sugeridas` = c(
+    "Corresponsabilidad parental, cuotas en sectores masculinizados, educación no sexista",
+    "Inversión federal compensatoria en Sur, descentralización, conectividad digital",
+    "Educación inicial universal, becas compensatorias, reconocimiento de saberes no escolares",
+    "Educación intercultural bilingüe, acciones afirmativas, campañas antidiscriminación"
+  )
+)
+
+kable(politicas, caption = "Recomendaciones de política por proceso cultural") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+---
+
+# 6. Conclusiones
+
+1. **Más del 50% de la desigualdad de ingresos** en México está asociada con circunstancias fuera del control individual.
+
+2. Los **tres procesos culturales dominantes** son:
+   - Estigmatización espacial (26%)
+   - Estandarización educativa (24%)
+   - Identificación de género (21%)
+
+3. Los resultados son **robustos** a diferentes especificaciones metodológicas y consistentes con la literatura previa para México y América Latina.
+
+4. Las políticas deben **atacar procesos culturales**, no solo circunstancias individuales.
+
+---
+
+# Referencias
+
+- Brunori, P., Ferrara, D., & Guiliano, A. (2023). Regression trees and forests for inequality of opportunity. *Scandinavian Journal of Economics*.
+
+- Ferreira, F. H., & Gignoux, J. (2011). The measurement of inequality of opportunity. *Review of Income and Wealth*, 57(4), 622-657.
+
+- Lamont, M., Beljean, S., & Clair, M. (2014). What is missing? Cultural processes and causal pathways to inequality. *Socio-Economic Review*, 12(3), 573-608.
+
+- Monroy-Gómez-Franco, L. (2023). A note on ex-ante inequality of opportunity across Mexican regions. *Economics Bulletin*.
+
+- Roemer, J. E. (1998). *Equality of Opportunity*. Harvard University Press.
+
+---
+
+# Información de la Sesión
+
+```{r session-info}
+sessionInfo()
+```
+
+---
+
+*Reporte generado el `r format(Sys.time(), '%d de %B de %Y a las %H:%M')`*
