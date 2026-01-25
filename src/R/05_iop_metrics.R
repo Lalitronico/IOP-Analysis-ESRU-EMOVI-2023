@@ -19,14 +19,37 @@ log_msg("Loading IOp metrics functions")
 #' @param weights optional sample weights
 #' @return Gini coefficient (0 = perfect equality, 1 = perfect inequality)
 gini_coef <- function(x, weights = NULL) {
-  x <- x[!is.na(x)]
+  # Remove NAs
+  valid <- !is.na(x)
+  x <- x[valid]
+
+  if (length(x) == 0) return(NA_real_)
 
   if (is.null(weights)) {
-    return(ineq::Gini(x))
+    weights <- rep(1, length(x))
   } else {
-    weights <- weights[!is.na(x)]
-    return(ineq::Gini(x, weights = weights))
+    weights <- weights[valid]
   }
+
+  # Sort by x
+
+  ord <- order(x)
+  x <- x[ord]
+  weights <- weights[ord]
+
+  # Normalize weights
+  weights <- weights / sum(weights)
+
+  # Weighted Gini using covariance formula
+  n <- length(x)
+  cum_w <- cumsum(weights)
+  mu <- sum(weights * x)
+
+  # Gini = (2 / mu) * Cov(x, F(x)) where F(x) is cumulative distribution
+  # Approximation: Gini = (2 * sum(w * x * cumw) / mu) - 1
+  gini <- (2 * sum(weights * x * cum_w) / mu) - 1
+
+  return(max(0, min(1, gini)))
 }
 
 #' Calculate Mean Log Deviation (MLD / Theil L)

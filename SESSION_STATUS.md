@@ -37,11 +37,19 @@
 - `requirements.txt` (Python)
 - `src/R/generate_renv_lock.R` (para generar renv.lock)
 
+## Sensitivity Analysis ✅ COMPLETADO
+
+| Conjunto | Variables | IOp (Gini) | IOp (R²) |
+|----------|-----------|------------|----------|
+| minimal | 4 | 47.3% | 23.8% |
+| standard | 7 | 50.6% | 28.1% |
+| with_ethnicity | 9 | 50.3% | 28.7% |
+
+**Conclusión:** Resultados estables (rango 47-51%), robustos a especificación.
+
 ## Pendiente ⏳
 
-1. Ejecutar `generate_renv_lock.R` para crear renv.lock
-2. Ejecutar sensitivity analysis (`06_sensitivity_analysis.R`)
-3. Auditoría final (objetivo: todo "Excelente")
+1. Auditoría final (objetivo: todo "Excelente")
 
 ## Archivos Clave
 
