@@ -18,31 +18,44 @@ df <- readRDS(get_path(config$paths$data_processed, "entrevistado_clean.rds"))
 log_msg("Loaded data: ", nrow(df), " observations")
 
 # ============================================================================
-# 2. Define Analysis Variables
+# 2. Define Analysis Variables (from variable_roles.yaml)
 # ============================================================================
-# NOTE: Update these with actual variable names from EMOVI 2023
 
-# Outcome variable
-OUTCOME_VAR <- "income_decile"  # Placeholder - update with actual var
+# Outcome variable - log per-capita household income
+OUTCOME_VAR <- "ln_ingc_pc"
 
-# Circumstance variables (from variable_roles.yaml)
+# Circumstance variables - Standard set following Brunori et al.
+# These are factors OUTSIDE individual control (exogenous)
 CIRCUMSTANCE_VARS <- c(
-  # Parental
-  "father_education",
-  "mother_education",
-  "father_occupation",
-  # Household origin
-  "n_books_14",
-  # Demographics
-  "sex",
-  "ethnicity",
-  "skin_tone",
-  "birth_region",
-  "birth_cohort"
+  # Parental background (at age 14)
+  "educp",           # Father's education (4 categories)
+  "educm",           # Mother's education (4 categories)
+  "clasep",          # Father's occupational class (6 categories)
+  # Demographics (innate/assigned at birth)
+  "sexo",            # Sex (1=Male, 2=Female)
+  "indigenous",      # Speaks indigenous language (p111)
+  "skin_tone",       # Self-reported skin tone 1-11 (p112)
+  "region_14",       # Region of residence at age 14
+  "cohorte",         # Birth cohort
+  "rural_14"         # Rural/urban status at age 14 (p21)
+)
+
+# Extended circumstance set (for robustness checks)
+CIRCUMSTANCE_VARS_EXTENDED <- c(
+  CIRCUMSTANCE_VARS,
+  "floor_material_14",  # Floor material at age 14 (p25)
+  "water_14",           # Piped water at age 14 (p26a)
+  "bathroom_14",        # Bathroom at age 14 (p26c)
+  "n_cars_14"           # Number of cars at age 14 (p30)
+)
+
+# Minimal circumstance set
+CIRCUMSTANCE_VARS_MINIMAL <- c(
+  "educp", "educm", "sexo", "indigenous", "region_14"
 )
 
 # Survey weight
-WEIGHT_VAR <- "factor"  # Placeholder - update with actual var
+WEIGHT_VAR <- "factor"
 
 # ============================================================================
 # 3. Prepare Analysis Dataset
@@ -282,64 +295,122 @@ cv_ctree <- function(data, param_grid, n_folds = 5, seed = SEEDS$cv) {
 # 9. Main Execution
 # ============================================================================
 
-run_ctree_analysis <- function() {
+run_ctree_analysis <- function(circumstance_set = "standard") {
 
-  # NOTE: This function will fail until actual variable names are specified
-  # Uncomment and run when data is ready
+  # Select circumstance set
+  circumstances <- switch(circumstance_set,
+    "minimal" = CIRCUMSTANCE_VARS_MINIMAL,
+    "standard" = CIRCUMSTANCE_VARS,
+    "extended" = CIRCUMSTANCE_VARS_EXTENDED,
+    CIRCUMSTANCE_VARS  # default
+  )
 
-  # # Prepare data
-  # prep <- prepare_ctree_data(
-  #   df = df,
-  #   outcome = OUTCOME_VAR,
-  #   circumstances = CIRCUMSTANCE_VARS,
-  #   weight = WEIGHT_VAR
-  # )
-  #
-  # # Define parameter grid for CV
-  # param_grid <- expand.grid(
-  #   mincriterion = config$ctree$mincriterion$grid,
-  #   minsplit = config$ctree$minsplit$default,
-  #   minbucket = config$ctree$minbucket$default,
-  #   maxdepth = config$ctree$maxdepth$grid
-  # )
-  #
-  # # Run cross-validation
-  # cv_results <- cv_ctree(prep, param_grid)
-  # save_table(cv_results, "ctree_cv_results")
-  #
-  # # Get best parameters
-  # best_params <- cv_results[1, ]
-  # log_msg("Best parameters: mincriterion=", best_params$mincriterion,
-  #         ", maxdepth=", best_params$maxdepth,
-  #         " (CV R² = ", round(best_params$mean_r2, 4), ")")
-  #
-  # # Fit final model with best parameters
-  # best_ctrl <- create_ctree_control(
-  #   mincriterion = best_params$mincriterion,
-  #   minsplit = best_params$minsplit,
-  #   minbucket = best_params$minbucket,
-  #   maxdepth = best_params$maxdepth
-  # )
-  #
-  # final_model <- fit_ctree(prep, best_ctrl)
-  #
-  # # Extract type information
-  # type_info <- extract_types(final_model, prep$data, OUTCOME_VAR)
-  # save_table(type_info, "ctree_type_summary")
-  #
-  # # Plot tree
-  # plot_ctree(final_model, "ctree_final")
-  #
-  # # Save model
-  # saveRDS(final_model, get_path(config$paths$models, "ctree_final.rds"))
-  #
-  # log_msg("ctree analysis complete")
-  # return(list(model = final_model, types = type_info, cv = cv_results))
+  log_msg("Running ctree with '", circumstance_set, "' circumstance set (",
+          length(circumstances), " variables)")
 
-  log_msg("ctree analysis placeholder - update variable names and uncomment code")
+  # Prepare data
+  prep <- prepare_ctree_data(
+    df = df,
+    outcome = OUTCOME_VAR,
+    circumstances = circumstances,
+    weight = WEIGHT_VAR
+  )
+
+  # Define parameter grid for CV
+  param_grid <- expand.grid(
+    mincriterion = config$ctree$mincriterion$grid,
+    minsplit = config$ctree$minsplit$default,
+    minbucket = config$ctree$minbucket$default,
+    maxdepth = config$ctree$maxdepth$grid
+  )
+
+  # Run cross-validation
+  cv_results <- cv_ctree(prep, param_grid)
+  save_table(cv_results, paste0("ctree_cv_results_", circumstance_set))
+
+  # Get best parameters
+  best_params <- cv_results[1, ]
+  log_msg("Best parameters: mincriterion=", best_params$mincriterion,
+          ", maxdepth=", best_params$maxdepth,
+          " (CV R² = ", round(best_params$mean_r2, 4), ")")
+
+  # Fit final model with best parameters
+  best_ctrl <- create_ctree_control(
+    mincriterion = best_params$mincriterion,
+    minsplit = best_params$minsplit,
+    minbucket = best_params$minbucket,
+    maxdepth = best_params$maxdepth
+  )
+
+  final_model <- fit_ctree(prep, best_ctrl)
+
+  # Extract type information
+  type_info <- extract_types(final_model, prep$data, OUTCOME_VAR)
+  save_table(type_info, paste0("ctree_type_summary_", circumstance_set))
+
+  # Plot tree
+  plot_ctree(final_model, paste0("ctree_", circumstance_set))
+
+  # Save model
+  saveRDS(final_model, get_path(config$paths$models,
+          paste0("ctree_", circumstance_set, ".rds")))
+
+  log_msg("ctree analysis complete for '", circumstance_set, "' set")
+  return(list(
+    model = final_model,
+    types = type_info,
+    cv = cv_results,
+    circumstance_set = circumstance_set,
+    n_circumstances = length(circumstances)
+  ))
 }
 
-# Run analysis
-# results <- run_ctree_analysis()
+#' Compare IOp results across different circumstance sets (Sensitivity Analysis)
+#' @param sets vector of circumstance set names to compare
+#' @return tibble with comparative results
+compare_circumstance_sets <- function(sets = c("minimal", "standard", "extended")) {
 
-log_msg("03_ctree_model.R loaded - call run_ctree_analysis() when data is ready")
+  log_msg("=== Sensitivity Analysis: Comparing Circumstance Sets ===")
+
+  results <- list()
+
+  for (set_name in sets) {
+    log_msg("\n--- Running set: ", set_name, " ---")
+    res <- run_ctree_analysis(circumstance_set = set_name)
+
+    # Compute R-squared from types
+    within_var <- res$types %>%
+      summarise(weighted_var = sum(n * sd_outcome^2, na.rm = TRUE) / sum(n)) %>%
+      pull(weighted_var)
+    total_var <- var(res$model$data[[OUTCOME_VAR]], na.rm = TRUE)
+    r2_types <- 1 - within_var / total_var
+
+    results[[set_name]] <- tibble(
+      circumstance_set = set_name,
+      n_circumstances = res$n_circumstances,
+      n_types = nrow(res$types),
+      r_squared = r2_types,
+      best_cv_r2 = res$cv$mean_r2[1],
+      maxdepth = res$cv$maxdepth[1]
+    )
+  }
+
+  comparison <- bind_rows(results)
+  save_table(comparison, "sensitivity_circumstance_sets")
+
+  log_msg("\n=== Sensitivity Analysis Complete ===")
+  log_msg("Results saved to: sensitivity_circumstance_sets.csv")
+
+  return(comparison)
+}
+
+# Run analysis (uncomment to execute)
+# results <- run_ctree_analysis("standard")
+
+# Run sensitivity analysis (uncomment to execute)
+# sensitivity_results <- compare_circumstance_sets()
+
+log_msg("03_ctree_model.R loaded")
+log_msg("Available functions:")
+log_msg("  - run_ctree_analysis(circumstance_set = 'standard')")
+log_msg("  - compare_circumstance_sets(sets = c('minimal', 'standard', 'extended'))")

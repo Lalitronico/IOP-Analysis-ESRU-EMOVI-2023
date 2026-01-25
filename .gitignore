@@ -71,9 +71,14 @@ outputs/tables/*.html
 *.temp
 *.log
 
-# Compressed files (keep original zips in repo root if needed)
-# Uncomment if you want to track the original data zips
-# !*.zip
+# Compressed files (data zips - too large for git)
+*.zip
+
+# Windows null device file
+nul
+
+# Data directory
+data/
 
 # Claude Code settings
 .claude/

@@ -187,26 +187,110 @@ Where φ_i is the contribution of feature i to that prediction.
 
 Importance reflects **marginal contribution** to explaining outcomes, conditional on other circumstances. High importance doesn't necessarily mean high policy relevance—consider feasibility of intervention.
 
-### 6.3 Caveats
+### 6.3 Critical Caveats
 
-1. **Lower bound**: We likely underestimate IOp because:
-   - Not all circumstances are measured
-   - Effort may be correlated with unmeasured circumstances
+#### 6.3.1 Association vs Causation
 
-2. **Measurement error**: Survey recall of circumstances at age 14 may be imprecise
+> **WARNING**: IOp analysis measures *association*, NOT causation.
 
-3. **Selectivity**: Working-age sample may not represent full population
+IOp estimates tell us how much outcome variation is *associated with* circumstances, not how much would change if we intervened on circumstances. For example:
+
+- Finding that parental education "explains" 15% of income inequality does NOT mean that increasing parental education by one level would reduce inequality by 15%
+- High importance of skin tone does NOT mean that changing skin tone would change outcomes
+
+**Why this matters:**
+- Circumstances may proxy for unmeasured factors
+- Reverse causation is possible (e.g., high-earning parents invest more in children's appearance)
+- General equilibrium effects could change relationships
+
+**Recommended language:**
+- Use: "is associated with", "correlates with", "predicts"
+- Avoid: "causes", "affects", "leads to", "is responsible for"
+
+#### 6.3.2 SHAP vs Shapley IOp Decomposition
+
+> **IMPORTANT**: SHAP feature importance ≠ Shapley decomposition of inequality.
+
+These are conceptually different methods:
+
+| Aspect | SHAP (ML Explainability) | Shapley IOp Decomposition |
+|--------|--------------------------|---------------------------|
+| **What it measures** | Feature contribution to individual predictions | Circumstance contribution to aggregate inequality |
+| **Unit of analysis** | Individual observation | Population distribution |
+| **Question answered** | "Why did person X get predicted value Y?" | "How much does circumstance C contribute to total IOp?" |
+| **Reference** | Lundberg & Lee (2017) | Ferreira & Gignoux (2011) |
+
+SHAP values tell us which features are important for *prediction*, not which circumstances contribute most to *inequality*. A circumstance can be highly predictive but contribute little to inequality if it affects everyone similarly.
+
+**For proper Shapley decomposition of inequality:**
+- Compute IOp for all subsets of circumstances
+- Calculate each circumstance's marginal contribution
+- Average over all possible orderings
+- Use Ferreira & Gignoux (2011) methodology
+
+#### 6.3.3 Lower Bound Interpretation
+
+Our IOp estimates are **lower bounds** because:
+
+1. **Unmeasured circumstances**: Many circumstances are unobserved (parental health, early childhood nutrition, neighborhood effects, etc.)
+
+2. **Effort endogeneity**: What we call "effort" (education choices, work intensity) may itself be shaped by circumstances
+
+3. **Measurement error**: Circumstances measured retrospectively (at age 14) contain recall error, attenuating estimates
+
+#### 6.3.4 Cultural Process Interpretation (Optional Framework)
+
+Following Lamont, Beljean & Clair (2014), circumstances can be interpreted through cultural processes:
+
+| Circumstance | Cultural Process | Mechanism |
+|--------------|------------------|-----------|
+| Indigenous language | Racialization + Stigmatization | Ethnic boundary marking |
+| Skin tone | Racialization | Colorism, visual categorization |
+| Parental education | Standardization | Credential as merit signal |
+| Parental occupation | Evaluation | Occupational prestige hierarchy |
+| Rural origin | Stigmatization | Urban/rural status divide |
+| Sex | Identification (gender) | Gender role expectations |
+
+This framework enriches quantitative findings by connecting them to sociological mechanisms, but should be clearly marked as *interpretive* rather than causal.
+
+#### 6.3.5 Policy Implications Caveat
+
+High IOp does NOT automatically imply that policies targeting specific circumstances will be effective:
+
+1. **Feasibility**: Some circumstances cannot be changed (sex, ethnicity, birth region)
+2. **Indirect effects**: Policies may need to target discrimination rather than circumstances themselves
+3. **General equilibrium**: Large-scale interventions may change the relationships we observe
+4. **Trade-offs**: Reducing IOp may have other costs (efficiency, fiscal, political)
+
+**Recommended approach:**
+- IOp analysis identifies *where* inequality is concentrated
+- Separate causal analysis is needed to identify *effective interventions*
+- Policy should target mechanisms, not circumstances directly
 
 ## 7. References
 
+### Inequality of Opportunity
+
 - Brunori, P., Ferrara, D., & Guiliano, A. (2023). Regression trees and forests for inequality of opportunity. *Scandinavian Journal of Economics*.
 
-- Hothorn, T., Hornik, K., & Zeileis, A. (2006). Unbiased recursive partitioning: A conditional inference framework. *Journal of Computational and Graphical Statistics*.
+- Ferreira, F. H., & Gignoux, J. (2011). The measurement of inequality of opportunity: Theory and an application to Latin America. *Review of Income and Wealth*, 57(4), 622-657.
+
+- Monroy-Gómez-Franco, L. (2023). A note on ex-ante inequality of opportunity across Mexican regions. *Economics Bulletin*.
 
 - Roemer, J. E. (1998). *Equality of Opportunity*. Harvard University Press.
 
-- Roemer, J. E., & Trannoy, A. (2016). Equality of opportunity: Theory and measurement. *Journal of Economic Literature*.
+- Roemer, J. E., & Trannoy, A. (2016). Equality of opportunity: Theory and measurement. *Journal of Economic Literature*, 54(4), 1288-1332.
 
-- Strobl, C., Boulesteix, A.-L., Zeileis, A., & Hothorn, T. (2007). Bias in random forest variable importance measures. *BMC Bioinformatics*.
+### Tree-Based Methods
 
-- Monroy-Gómez-Franco, L. (2023). A note on ex-ante inequality of opportunity across Mexican regions. *Economics Bulletin*.
+- Hothorn, T., Hornik, K., & Zeileis, A. (2006). Unbiased recursive partitioning: A conditional inference framework. *Journal of Computational and Graphical Statistics*, 15(3), 651-674.
+
+- Strobl, C., Boulesteix, A.-L., Zeileis, A., & Hothorn, T. (2007). Bias in random forest variable importance measures. *BMC Bioinformatics*, 8(1), 25.
+
+### Machine Learning Interpretability
+
+- Lundberg, S. M., & Lee, S.-I. (2017). A unified approach to interpreting model predictions. *Advances in Neural Information Processing Systems*, 30.
+
+### Cultural Processes
+
+- Lamont, M., Beljean, S., & Clair, M. (2014). What is missing? Cultural processes and causal pathways to inequality. *Socio-Economic Review*, 12(3), 573-608.

@@ -11,17 +11,39 @@ source(here::here("src", "R", "00_setup.R"))
 log_msg("Starting cforest modeling")
 
 # ============================================================================
-# 1. Load Data and Variable Definitions
+# 1. Load Data and Variable Definitions (from variable_roles.yaml)
 # ============================================================================
 
 df <- readRDS(get_path(config$paths$data_processed, "entrevistado_clean.rds"))
 
-# Same variable definitions as ctree (from 03_ctree_model.R)
-OUTCOME_VAR <- "income_decile"  # Placeholder
+# Outcome variable - log per-capita household income
+OUTCOME_VAR <- "ln_ingc_pc"
+
+# Circumstance variables - Standard set following Brunori et al.
 CIRCUMSTANCE_VARS <- c(
-  "father_education", "mother_education", "father_occupation",
-  "n_books_14", "sex", "ethnicity", "skin_tone", "birth_region", "birth_cohort"
+  # Parental background (at age 14)
+  "educp",           # Father's education (4 categories)
+  "educm",           # Mother's education (4 categories)
+  "clasep",          # Father's occupational class (6 categories)
+  # Demographics (innate/assigned at birth)
+  "sexo",            # Sex (1=Male, 2=Female)
+  "indigenous",      # Speaks indigenous language (p111)
+  "skin_tone",       # Self-reported skin tone 1-11 (p112)
+  "region_14",       # Region of residence at age 14
+  "cohorte",         # Birth cohort
+  "rural_14"         # Rural/urban status at age 14 (p21)
 )
+
+# Extended circumstance set
+CIRCUMSTANCE_VARS_EXTENDED <- c(
+  CIRCUMSTANCE_VARS,
+  "floor_material_14",  # Floor material at age 14 (p25)
+  "water_14",           # Piped water at age 14 (p26a)
+  "bathroom_14",        # Bathroom at age 14 (p26c)
+  "n_cars_14"           # Number of cars at age 14 (p30)
+)
+
+# Survey weight
 WEIGHT_VAR <- "factor"
 
 # ============================================================================
@@ -295,57 +317,75 @@ assess_type_stability <- function(data, ctree_model, n_boot = 100,
 # 7. Main Execution
 # ============================================================================
 
-run_cforest_analysis <- function() {
+run_cforest_analysis <- function(circumstance_set = "standard", n_boot = 50) {
 
-  # NOTE: Placeholder - uncomment when variables are defined
+  # Select circumstance set
+  circumstances <- switch(circumstance_set,
+    "standard" = CIRCUMSTANCE_VARS,
+    "extended" = CIRCUMSTANCE_VARS_EXTENDED,
+    CIRCUMSTANCE_VARS
+  )
 
-  # # Create formula
-  # formula_str <- paste(OUTCOME_VAR, "~", paste(CIRCUMSTANCE_VARS, collapse = " + "))
-  # formula <- as.formula(formula_str)
-  #
-  # # Prepare data
-  # df_analysis <- df %>%
-  #   select(all_of(c(OUTCOME_VAR, CIRCUMSTANCE_VARS))) %>%
-  #   drop_na()
-  #
-  # log_msg("Analysis data: ", nrow(df_analysis), " complete cases")
-  #
-  # # Set up control
-  # ctrl <- create_cforest_control(
-  #   ntree = config$cforest$ntree,
-  #   mtry = floor(sqrt(length(CIRCUMSTANCE_VARS)))
-  # )
-  #
-  # # Fit model
-  # model <- fit_cforest(df_analysis, formula, ctrl)
-  #
-  # # Compute variable importance
-  # vi <- compute_varimp(model, conditional = TRUE)
-  # log_msg("Top 3 circumstances: ", paste(names(sort(vi, decreasing = TRUE))[1:3], collapse = ", "))
-  #
-  # # Bootstrap for confidence intervals
-  # vi_boot <- bootstrap_varimp(
-  #   df_analysis, formula, ctrl,
-  #   n_boot = min(50, config$seeds$n_bootstrap),  # Reduced for speed
-  #   conditional = TRUE
-  # )
-  # save_table(vi_boot$summary, "varimp_bootstrap_ci")
-  #
-  # # Visualizations
-  # plot_varimp(vi_boot$summary)
-  # plot_varimp_comparison(model)
-  #
-  # # Save model and results
-  # saveRDS(model, get_path(config$paths$models, "cforest_final.rds"))
-  # saveRDS(vi_boot, get_path(config$paths$models, "varimp_bootstrap.rds"))
-  #
-  # log_msg("cforest analysis complete")
-  # return(list(model = model, varimp = vi, varimp_boot = vi_boot))
+  log_msg("Running cforest with '", circumstance_set, "' set (",
+          length(circumstances), " variables)")
 
-  log_msg("cforest analysis placeholder - update variable names and uncomment code")
+  # Create formula
+  formula_str <- paste(OUTCOME_VAR, "~", paste(circumstances, collapse = " + "))
+  formula <- as.formula(formula_str)
+
+  # Prepare data
+  df_analysis <- df %>%
+    select(all_of(c(OUTCOME_VAR, circumstances))) %>%
+    drop_na()
+
+  log_msg("Analysis data: ", nrow(df_analysis), " complete cases")
+
+  # Set up control
+  ctrl <- create_cforest_control(
+    ntree = config$cforest$ntree,
+    mtry = floor(sqrt(length(circumstances)))
+  )
+
+  # Fit model
+  model <- fit_cforest(df_analysis, formula, ctrl)
+
+  # Compute variable importance
+  vi <- compute_varimp(model, conditional = TRUE)
+  top3 <- names(sort(vi, decreasing = TRUE))[1:3]
+  log_msg("Top 3 circumstances: ", paste(top3, collapse = ", "))
+
+  # Bootstrap for confidence intervals
+  vi_boot <- bootstrap_varimp(
+    df_analysis, formula, ctrl,
+    n_boot = n_boot,
+    conditional = TRUE
+  )
+  save_table(vi_boot$summary, paste0("varimp_bootstrap_ci_", circumstance_set))
+
+  # Visualizations
+  plot_varimp(vi_boot$summary, paste0("varimp_cforest_", circumstance_set))
+  plot_varimp_comparison(model, paste0("varimp_comparison_", circumstance_set))
+
+  # Save model and results
+  saveRDS(model, get_path(config$paths$models,
+          paste0("cforest_", circumstance_set, ".rds")))
+  saveRDS(vi_boot, get_path(config$paths$models,
+          paste0("varimp_bootstrap_", circumstance_set, ".rds")))
+
+  log_msg("cforest analysis complete for '", circumstance_set, "' set")
+  return(list(
+    model = model,
+    varimp = vi,
+    varimp_boot = vi_boot,
+    circumstance_set = circumstance_set
+  ))
 }
 
-# Run analysis
-# results <- run_cforest_analysis()
+# Run analysis (uncomment to execute)
+# results <- run_cforest_analysis("standard", n_boot = 50)
 
-log_msg("04_cforest_model.R loaded - call run_cforest_analysis() when data is ready")
+log_msg("04_cforest_model.R loaded")
+log_msg("Available functions:")
+log_msg("  - run_cforest_analysis(circumstance_set = 'standard', n_boot = 50)")
+log_msg("  - compute_varimp(model, conditional = TRUE)")
+log_msg("  - bootstrap_varimp(data, formula, control, n_boot = 100)")
