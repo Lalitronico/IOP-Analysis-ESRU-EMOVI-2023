@@ -37,6 +37,15 @@ OUTCOME_VAR = 'ingc_pc'
 CIRCUMSTANCE_VARS = ['educp', 'educm', 'clasep', 'sexo', 'p111', 'p112', 'region_14', 'cohorte', 'p21']
 WEIGHT_VAR = 'factor'
 
+# Extended circumstance set with new indices (maximum specification)
+CIRCUMSTANCE_VARS_MAXIMUM = CIRCUMSTANCE_VARS + [
+    'household_economic_index',
+    'neighborhood_index',
+    'cultural_capital_index',
+    'crowding_index',
+    'financial_inclusion_index'
+]
+
 # Variable labels for better visualization
 VAR_LABELS = {
     'educm': "Mother's Education",
@@ -47,23 +56,57 @@ VAR_LABELS = {
     'p112': 'Skin Tone',
     'region_14': 'Region at 14',
     'cohorte': 'Birth Cohort',
-    'p21': 'Rural/Urban at 14'
+    'p21': 'Rural/Urban at 14',
+    # New index labels
+    'household_economic_index': 'Household Economic Conditions (MCA)',
+    'neighborhood_index': 'Neighborhood Quality',
+    'cultural_capital_index': 'Cultural/Digital Capital',
+    'crowding_index': 'Crowding (persons/room)',
+    'financial_inclusion_index': 'Family Financial Inclusion'
 }
 
 # =============================================================================
 # Data Loading
 # =============================================================================
 
-def load_and_prepare_data():
-    """Load EMOVI data and prepare for XGBoost."""
+def load_and_prepare_data(use_extended=False, from_rds=False):
+    """Load EMOVI data and prepare for XGBoost.
+
+    Args:
+        use_extended: If True, use CIRCUMSTANCE_VARS_MAXIMUM (requires preprocessed data)
+        from_rds: If True, load from preprocessed RDS file (via R)
+
+    Returns:
+        DataFrame with outcome, circumstances, and weights
+    """
     print("Loading EMOVI 2023 data...")
 
-    df = pd.read_stata(DATA_PATH, convert_categoricals=False)
-    print(f"  Loaded {len(df):,} observations")
+    # Determine which circumstance set to use
+    circumstances = CIRCUMSTANCE_VARS_MAXIMUM if use_extended else CIRCUMSTANCE_VARS
 
-    # Select relevant variables
-    all_vars = [OUTCOME_VAR] + CIRCUMSTANCE_VARS + [WEIGHT_VAR]
-    df = df[all_vars].copy()
+    if from_rds:
+        # Load from preprocessed R data (needed for new indices)
+        import pyreadr
+        rds_path = PROJECT_ROOT / "data" / "processed" / "entrevistado_clean.rds"
+        if not rds_path.exists():
+            print(f"  Warning: {rds_path} not found, falling back to raw data")
+            from_rds = False
+        else:
+            result = pyreadr.read_r(str(rds_path))
+            df = result[None]  # RDS files have None as key
+            print(f"  Loaded preprocessed data: {len(df):,} observations")
+
+    if not from_rds:
+        df = pd.read_stata(DATA_PATH, convert_categoricals=False)
+        print(f"  Loaded raw data: {len(df):,} observations")
+
+    # Select available variables
+    available_vars = [v for v in [OUTCOME_VAR] + circumstances + [WEIGHT_VAR] if v in df.columns]
+    missing_vars = [v for v in circumstances if v not in df.columns]
+    if missing_vars:
+        print(f"  Note: Missing variables (will be ignored): {missing_vars}")
+
+    df = df[available_vars].copy()
 
     # Transform outcome (log of income)
     df['ln_income'] = np.log(df[OUTCOME_VAR].replace(0, np.nan))
@@ -75,11 +118,25 @@ def load_and_prepare_data():
     return df_clean
 
 
-def prepare_features(df):
-    """Prepare features for XGBoost (handle categorical encoding)."""
-    X = df[CIRCUMSTANCE_VARS].copy()
+def prepare_features(df, use_extended=False):
+    """Prepare features for XGBoost (handle categorical encoding).
+
+    Args:
+        df: DataFrame with all variables
+        use_extended: If True, use extended circumstance set
+
+    Returns:
+        X (features), y (outcome), weights
+    """
+    circumstances = CIRCUMSTANCE_VARS_MAXIMUM if use_extended else CIRCUMSTANCE_VARS
+
+    # Select only available circumstance variables
+    available_circumstances = [v for v in circumstances if v in df.columns]
+    X = df[available_circumstances].copy()
     y = df['ln_income'].copy()
-    weights = df[WEIGHT_VAR].copy()
+    weights = df[WEIGHT_VAR].copy() if WEIGHT_VAR in df.columns else None
+
+    print(f"  Using {len(available_circumstances)} circumstance variables")
 
     # Special handling for p112 (PERLA scale: A-K -> 1-11)
     if 'p112' in X.columns:
@@ -294,16 +351,22 @@ def calculate_iop_xgboost(y_true, y_pred, weights=None):
 # Main Pipeline
 # =============================================================================
 
-def main():
-    """Run complete XGBoost + SHAP analysis pipeline."""
+def main(use_extended=False):
+    """Run complete XGBoost + SHAP analysis pipeline.
+
+    Args:
+        use_extended: If True, use maximum circumstance set with new indices
+    """
     print("=" * 70)
     print("XGBoost + SHAP Analysis for Inequality of Opportunity")
     print("ESRU-EMOVI 2023")
+    if use_extended:
+        print("Using EXTENDED circumstance set (maximum specification)")
     print("=" * 70)
 
     # Load data
-    df = load_and_prepare_data()
-    X, y, weights = prepare_features(df)
+    df = load_and_prepare_data(use_extended=use_extended, from_rds=use_extended)
+    X, y, weights = prepare_features(df, use_extended=use_extended)
 
     # Train XGBoost (set tune=True for hyperparameter optimization)
     model, best_params, cv_scores = train_xgboost(X, y, tune=True)
@@ -366,4 +429,10 @@ def main():
 
 
 if __name__ == "__main__":
-    results = main()
+    import argparse
+    parser = argparse.ArgumentParser(description='XGBoost + SHAP IOp Analysis')
+    parser.add_argument('--extended', action='store_true',
+                        help='Use extended circumstance set with new indices')
+    args = parser.parse_args()
+
+    results = main(use_extended=args.extended)

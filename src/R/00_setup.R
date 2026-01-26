@@ -47,7 +47,10 @@ required_packages <- c(
   "here",
   "glue",
   "assertthat",
-  "tictoc"
+  "tictoc",
+
+  # Multiple Correspondence Analysis
+  "FactoMineR"   # For MCA on categorical variables
 )
 
 # Install missing packages

@@ -45,6 +45,45 @@ CIRCUMSTANCE_SETS <- list(
     "clasep",          # Father's class (proxy for SES)
     "sexo", "indigenous", "skin_tone",
     "region_14", "rural_14"
+  ),
+
+  # ---- NEW EXTENDED SETS WITH INDICES ----
+
+  # Standard + household economic conditions
+  extended_household = c(
+    "educp", "educm", "clasep",
+    "sexo", "indigenous", "skin_tone",
+    "region_14", "cohorte", "rural_14",
+    "household_economic_index",
+    "crowding_index"
+  ),
+
+  # Standard + neighborhood quality
+  extended_neighborhood = c(
+    "educp", "educm", "clasep",
+    "sexo", "indigenous", "skin_tone",
+    "region_14", "cohorte", "rural_14",
+    "neighborhood_index"
+  ),
+
+  # Standard + cultural capital
+  extended_cultural = c(
+    "educp", "educm", "clasep",
+    "sexo", "indigenous", "skin_tone",
+    "region_14", "cohorte", "rural_14",
+    "cultural_capital_index"
+  ),
+
+  # Maximum: All available circumstances (upper bound)
+  maximum = c(
+    "educp", "educm", "clasep",
+    "sexo", "indigenous", "skin_tone",
+    "region_14", "cohorte", "rural_14",
+    "household_economic_index",
+    "neighborhood_index",
+    "cultural_capital_index",
+    "crowding_index",
+    "financial_inclusion_index"
   )
 )
 
@@ -361,7 +400,9 @@ plot_sensitivity_results <- function(results, filename = "sensitivity_plot") {
         metric == "iop_rsq" ~ "R-squared"
       ),
       circumstance_set = factor(circumstance_set,
-                                 levels = c("minimal", "standard", "extended", "no_parental"))
+                                 levels = c("minimal", "standard", "extended",
+                                            "extended_household", "extended_neighborhood",
+                                            "extended_cultural", "maximum", "no_parental"))
     )
 
   p <- ggplot(plot_data, aes(x = circumstance_set, y = value * 100,

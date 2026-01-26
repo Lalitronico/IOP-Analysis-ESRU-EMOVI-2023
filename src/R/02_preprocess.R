@@ -246,6 +246,224 @@ create_housing_index <- function(df, floor_var, walls_var, roof_var) {
 }
 
 # ============================================================================
+# NEW: Household Economic Index (MCA - Multiple Correspondence Analysis)
+# ============================================================================
+#' Create comprehensive household economic index using MCA
+#' MCA is methodologically appropriate for binary/categorical variables
+#' @param df data frame with asset and service variables
+#' @return list with index, MCA object, and variance explained
+create_household_economic_index <- function(df) {
+  # Variables de bienes (binarias: 1=Sí, 2=No)
+  asset_vars <- c("p31a", "p31b", "p31c", "p31d", "p31e",
+                  "p31g", "p31h", "p31i", "p31k", "p31l")
+
+  # Servicios básicos
+  service_vars <- c("p26a", "p26b", "p26c", "p26d", "p26e")
+
+  # Check which variables exist
+  all_vars <- c(asset_vars, service_vars, "p25")
+  available_vars <- all_vars[all_vars %in% names(df)]
+
+  if (length(available_vars) < 5) {
+    warning("Insufficient variables for household economic index")
+    return(list(index = rep(NA_real_, nrow(df)), variance_explained = NA))
+  }
+
+  # Preparar data frame para MCA (variables como factores)
+  df_mca <- df %>%
+    select(all_of(available_vars)) %>%
+    mutate(across(everything(), as.factor))
+
+  # MCA en casos completos
+  complete_idx <- complete.cases(df_mca)
+  if (sum(complete_idx) < 100) {
+    warning("Insuficientes casos completos para MCA: ", sum(complete_idx))
+    return(list(index = rep(NA_real_, nrow(df)), variance_explained = NA))
+  }
+
+  # Ejecutar MCA con FactoMineR
+  mca_result <- FactoMineR::MCA(df_mca[complete_idx, ],
+                                 ncp = 2,           # Primeras 2 dimensiones
+                                 graph = FALSE)     # Sin gráficos automáticos
+
+  # Usar Dimensión 1 (típicamente captura nivel socioeconómico)
+  dim1 <- mca_result$ind$coord[, 1]
+
+  # Estandarizar a 0-100
+  index <- rep(NA_real_, nrow(df))
+  index[complete_idx] <- (dim1 - min(dim1)) / (max(dim1) - min(dim1)) * 100
+
+  return(list(
+    index = index,
+    mca = mca_result,
+    variance_explained = mca_result$eig[1, 2] / 100  # % de inercia explicada
+  ))
+}
+
+# ============================================================================
+# NEW: Neighborhood Quality Index (Suma ponderada)
+# ============================================================================
+#' Create neighborhood quality index from P33 variables
+#' Captures access to public services and community amenities
+#' @param df data frame with p33a-h variables
+#' @return numeric vector (0-100 scale)
+create_neighborhood_index <- function(df) {
+  neigh_vars <- paste0("p33", letters[1:8])
+
+  # Check which exist
+  available_vars <- neigh_vars[neigh_vars %in% names(df)]
+  if (length(available_vars) == 0) {
+    warning("No neighborhood variables found")
+    return(rep(NA_real_, nrow(df)))
+  }
+
+  # Recodificar: Sí->2, No->0, Más o menos/NS->1
+  # Handle both factor labels (Spanish) and numeric codes
+  recode_p33 <- function(x) {
+    if (is.factor(x)) {
+      x_char <- as.character(x)
+      case_when(
+        x_char == "Sí" ~ 2,
+        x_char == "No" ~ 0,
+        x_char %in% c("Más o menos", "NS") ~ NA_real_,
+        TRUE ~ NA_real_
+      )
+    } else {
+      case_when(
+        x == 1 ~ 2,  # Sí
+        x == 2 ~ 1,  # Más o menos
+        x == 3 ~ 0,  # No
+        TRUE ~ NA_real_
+      )
+    }
+  }
+
+  df_neigh <- df %>%
+    select(all_of(available_vars)) %>%
+    mutate(across(everything(), recode_p33))
+
+  # Suma simple, estandarizar a 0-100
+  max_score <- length(available_vars) * 2
+  index <- rowSums(df_neigh, na.rm = FALSE) / max_score * 100
+
+  return(index)
+}
+
+# ============================================================================
+# NEW: Crowding Index (Hacinamiento)
+# ============================================================================
+#' Calculate household crowding (persons per bedroom)
+#' @param df data frame with p22 (persons) and p24 (bedrooms)
+#' @return numeric vector (persons per bedroom)
+create_crowding_index <- function(df) {
+  if (!all(c("p22", "p24") %in% names(df))) {
+    warning("Variables p22 or p24 not found")
+    return(rep(NA_real_, nrow(df)))
+  }
+
+  # Get numeric values (handle factors if present)
+  p22 <- if (is.factor(df$p22)) as.numeric(as.character(df$p22)) else as.numeric(df$p22)
+  p24 <- if (is.factor(df$p24)) as.numeric(as.character(df$p24)) else as.numeric(df$p24)
+
+  # Treat extreme values (99, 999, etc.) as missing
+  p22[p22 >= 50] <- NA  # Unlikely to have 50+ persons in household
+  p24[p24 >= 50] <- NA  # Unlikely to have 50+ bedrooms
+
+  # Personas por cuarto de dormir (mínimo 1 cuarto para evitar división por 0)
+  crowding <- p22 / pmax(p24, 1)
+
+  return(crowding)
+}
+
+# ============================================================================
+# NEW: Financial Inclusion Index
+# ============================================================================
+#' Create family financial inclusion index at age 14
+#' Captures access to formal financial services
+#' @param df data frame with p32e, p32f, p32n variables
+#' @return numeric vector (0-100 scale)
+create_financial_inclusion_index <- function(df) {
+  fin_vars <- c("p32e", "p32f", "p32n")
+
+  # Check which exist
+  available_vars <- fin_vars[fin_vars %in% names(df)]
+  if (length(available_vars) == 0) {
+    warning("No financial inclusion variables found")
+    return(rep(NA_real_, nrow(df)))
+  }
+
+  # Helper to recode binary yes/no (handles factors and numeric)
+  recode_yes_no <- function(x) {
+    if (is.factor(x)) {
+      x_char <- as.character(x)
+      case_when(
+        x_char == "Sí" ~ 1,
+        x_char == "No" ~ 0,
+        TRUE ~ NA_real_  # NS or other
+      )
+    } else {
+      ifelse(x == 1, 1, 0)
+    }
+  }
+
+  df_fin <- df %>%
+    select(all_of(available_vars)) %>%
+    mutate(across(everything(), recode_yes_no))
+
+  # Suma (0-n), estandarizar a 0-100
+  index <- rowSums(df_fin, na.rm = FALSE) / length(available_vars) * 100
+
+  return(index)
+}
+
+# ============================================================================
+# NEW: Cultural Capital Index
+# ============================================================================
+#' Create cultural/digital capital index
+#' Captures access to information, digital resources, and cultural content
+#' @param df data frame with p31k, p31l, p31e, p31h, p31m variables
+#' @return numeric vector (0-100 scale)
+create_cultural_capital_index <- function(df) {
+  # Variables que capturan capital cultural/digital del hogar de origen:
+  # - p31k: Computadora (acceso a conocimiento digital)
+  # - p31l: Internet (conectividad global)
+  # - p31e: Televisor (acceso a información/entretenimiento)
+  # - p31h: TV cable (contenido diverso/educativo)
+  # - p31m: DVD/Videocasetera (material audiovisual)
+  cultural_vars <- c("p31k", "p31l", "p31e", "p31h", "p31m")
+
+  # Check which exist
+  available_vars <- cultural_vars[cultural_vars %in% names(df)]
+  if (length(available_vars) == 0) {
+    warning("No cultural capital variables found")
+    return(rep(NA_real_, nrow(df)))
+  }
+
+  # Helper to recode binary yes/no (handles factors and numeric)
+  recode_yes_no <- function(x) {
+    if (is.factor(x)) {
+      x_char <- as.character(x)
+      case_when(
+        x_char == "Sí" ~ 1,
+        x_char == "No" ~ 0,
+        TRUE ~ NA_real_  # NS or other
+      )
+    } else {
+      ifelse(x == 1, 1, 0)
+    }
+  }
+
+  df_cult <- df %>%
+    select(all_of(available_vars)) %>%
+    mutate(across(everything(), recode_yes_no))
+
+  # Suma simple, estandarizar a 0-100
+  index <- rowSums(df_cult, na.rm = FALSE) / length(available_vars) * 100
+
+  return(index)
+}
+
+# ============================================================================
 # 6. Missing Data Handling
 # ============================================================================
 
@@ -346,6 +564,63 @@ entrevistado_clean <- entrevistado %>%
 log_msg("Basic cleaning complete")
 log_msg("Clean dataset: ", nrow(entrevistado_clean), " obs, ",
         ncol(entrevistado_clean), " vars")
+
+# ============================================================================
+# 8b. Create Circumstance Indices
+# ============================================================================
+log_msg("Creating circumstance indices...")
+
+# 1. Household Economic Index (MCA)
+tryCatch({
+  hh_result <- create_household_economic_index(entrevistado_clean)
+  entrevistado_clean$household_economic_index <- hh_result$index
+  if (!is.na(hh_result$variance_explained)) {
+    log_msg("  household_economic_index (MCA): inertia explained = ",
+            round(hh_result$variance_explained * 100, 1), "%")
+  } else {
+    log_msg("  household_economic_index: could not compute (missing variables)")
+  }
+}, error = function(e) {
+  log_msg("  household_economic_index: error - ", e$message)
+})
+
+# 2. Neighborhood Index
+tryCatch({
+  entrevistado_clean$neighborhood_index <- create_neighborhood_index(entrevistado_clean)
+  n_valid <- sum(!is.na(entrevistado_clean$neighborhood_index))
+  log_msg("  neighborhood_index created (", n_valid, " valid obs)")
+}, error = function(e) {
+  log_msg("  neighborhood_index: error - ", e$message)
+})
+
+# 3. Crowding Index
+tryCatch({
+  entrevistado_clean$crowding_index <- create_crowding_index(entrevistado_clean)
+  n_valid <- sum(!is.na(entrevistado_clean$crowding_index))
+  log_msg("  crowding_index created (", n_valid, " valid obs)")
+}, error = function(e) {
+  log_msg("  crowding_index: error - ", e$message)
+})
+
+# 4. Financial Inclusion Index
+tryCatch({
+  entrevistado_clean$financial_inclusion_index <- create_financial_inclusion_index(entrevistado_clean)
+  n_valid <- sum(!is.na(entrevistado_clean$financial_inclusion_index))
+  log_msg("  financial_inclusion_index created (", n_valid, " valid obs)")
+}, error = function(e) {
+  log_msg("  financial_inclusion_index: error - ", e$message)
+})
+
+# 5. Cultural Capital Index
+tryCatch({
+  entrevistado_clean$cultural_capital_index <- create_cultural_capital_index(entrevistado_clean)
+  n_valid <- sum(!is.na(entrevistado_clean$cultural_capital_index))
+  log_msg("  cultural_capital_index created (", n_valid, " valid obs)")
+}, error = function(e) {
+  log_msg("  cultural_capital_index: error - ", e$message)
+})
+
+log_msg("Circumstance indices creation complete")
 
 # ============================================================================
 # 9. Save Preprocessed Data

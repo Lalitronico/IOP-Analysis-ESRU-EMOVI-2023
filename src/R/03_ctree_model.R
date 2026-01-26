@@ -54,6 +54,39 @@ CIRCUMSTANCE_VARS_MINIMAL <- c(
   "educp", "educm", "sexo", "indigenous", "region_14"
 )
 
+# ============================================================================
+# Extended sets with new indices (for expanded IOp analysis)
+# ============================================================================
+
+# Standard + household economic conditions
+CIRCUMSTANCE_VARS_HOUSEHOLD <- c(
+  CIRCUMSTANCE_VARS,
+  "household_economic_index",
+  "crowding_index"
+)
+
+# Standard + neighborhood quality
+CIRCUMSTANCE_VARS_NEIGHBORHOOD <- c(
+  CIRCUMSTANCE_VARS,
+  "neighborhood_index"
+)
+
+# Standard + cultural capital
+CIRCUMSTANCE_VARS_CULTURAL <- c(
+  CIRCUMSTANCE_VARS,
+  "cultural_capital_index"
+)
+
+# Maximum set: all available circumstances (upper bound estimate)
+CIRCUMSTANCE_VARS_MAXIMUM <- c(
+  CIRCUMSTANCE_VARS,
+  "household_economic_index",
+  "neighborhood_index",
+  "cultural_capital_index",
+  "crowding_index",
+  "financial_inclusion_index"
+)
+
 # Survey weight
 WEIGHT_VAR <- "factor"
 
@@ -302,6 +335,10 @@ run_ctree_analysis <- function(circumstance_set = "standard") {
     "minimal" = CIRCUMSTANCE_VARS_MINIMAL,
     "standard" = CIRCUMSTANCE_VARS,
     "extended" = CIRCUMSTANCE_VARS_EXTENDED,
+    "extended_household" = CIRCUMSTANCE_VARS_HOUSEHOLD,
+    "extended_neighborhood" = CIRCUMSTANCE_VARS_NEIGHBORHOOD,
+    "extended_cultural" = CIRCUMSTANCE_VARS_CULTURAL,
+    "maximum" = CIRCUMSTANCE_VARS_MAXIMUM,
     CIRCUMSTANCE_VARS  # default
   )
 
@@ -368,7 +405,9 @@ run_ctree_analysis <- function(circumstance_set = "standard") {
 #' Compare IOp results across different circumstance sets (Sensitivity Analysis)
 #' @param sets vector of circumstance set names to compare
 #' @return tibble with comparative results
-compare_circumstance_sets <- function(sets = c("minimal", "standard", "extended")) {
+compare_circumstance_sets <- function(sets = c("minimal", "standard", "extended",
+                                                "extended_household", "extended_neighborhood",
+                                                "extended_cultural", "maximum")) {
 
   log_msg("=== Sensitivity Analysis: Comparing Circumstance Sets ===")
 
@@ -413,4 +452,8 @@ compare_circumstance_sets <- function(sets = c("minimal", "standard", "extended"
 log_msg("03_ctree_model.R loaded")
 log_msg("Available functions:")
 log_msg("  - run_ctree_analysis(circumstance_set = 'standard')")
-log_msg("  - compare_circumstance_sets(sets = c('minimal', 'standard', 'extended'))")
+log_msg("  - compare_circumstance_sets(sets)")
+log_msg("Available circumstance sets:")
+log_msg("  - minimal, standard, extended")
+log_msg("  - extended_household, extended_neighborhood, extended_cultural")
+log_msg("  - maximum (all circumstances - upper bound)")

@@ -328,6 +328,96 @@ indices:
       - "p33h"   # Limpieza calles
     standardize: true
 
+  # ---- NEW INDICES FOR EXPANDED IOp ANALYSIS ----
+
+  household_economic_index:
+    description: "Comprehensive household economic conditions (MCA)"
+    method: "mca"
+    notes: "MCA is methodologically appropriate for binary/categorical variables"
+    components:
+      # Bienes durables
+      - "p31a"   # Estufa
+      - "p31b"   # Lavadora
+      - "p31c"   # Refrigerador
+      - "p31d"   # Teléfono
+      - "p31e"   # TV
+      - "p31g"   # Aspiradora
+      - "p31h"   # TV cable
+      - "p31i"   # Microondas
+      - "p31k"   # Computadora
+      - "p31l"   # Internet
+      # Servicios básicos
+      - "p26a"   # Agua
+      - "p26b"   # Electricidad
+      - "p26c"   # Baño
+      - "p26d"   # Calentador
+      - "p26e"   # Servicio doméstico
+      # Vivienda
+      - "p25"    # Material piso
+    standardize: true
+    scale: [0, 100]
+
+  neighborhood_index:
+    description: "Neighborhood quality and services index"
+    method: "sum"
+    components:
+      - source: "p33a"
+        label: "Alumbrado público"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33b"
+        label: "Escuelas/bibliotecas"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33c"
+        label: "Centros médicos"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33d"
+        label: "Guarderías"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33e"
+        label: "Esparcimiento"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33f"
+        label: "Seguridad"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33g"
+        label: "Transporte"
+        scoring: {1: 2, 2: 1, 3: 0}
+      - source: "p33h"
+        label: "Limpieza calles"
+        scoring: {1: 2, 2: 1, 3: 0}
+    standardize: true
+    scale: [0, 100]
+
+  crowding_index:
+    description: "Household crowding (persons per bedroom)"
+    method: "ratio"
+    numerator: "p22"
+    denominator: "p24"
+    notes: "Higher = more crowded = worse conditions"
+
+  financial_inclusion_index:
+    description: "Family financial inclusion at age 14"
+    method: "sum"
+    components:
+      - "p32e"   # Cuenta de ahorro
+      - "p32f"   # Tarjeta de crédito
+      - "p32n"   # Seguros
+    standardize: true
+    scale: [0, 100]
+
+  cultural_capital_index:
+    description: "Cultural/digital capital in household of origin"
+    method: "sum"
+    components:
+      - "p31k"   # Computadora
+      - "p31l"   # Internet
+      - "p31e"   # TV
+      - "p31h"   # TV cable
+      - "p31m"   # DVD/Videocasetera
+    standardize: true
+    scale: [0, 100]
+    notes: "Captures access to information, digital resources, and cultural content"
+
 # ----------------------------------------------------------------------------
 # SURVEY DESIGN
 # ----------------------------------------------------------------------------
@@ -391,3 +481,66 @@ circumstance_sets:
       - "skin_tone"
       - "region_14"
       - "wealth_index_14"
+
+  # ---- NEW EXTENDED CIRCUMSTANCE SETS ----
+
+  extended_household:
+    description: "Standard + household economic conditions"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+      - "household_economic_index"
+      - "crowding_index"
+
+  extended_neighborhood:
+    description: "Standard + neighborhood quality"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+      - "neighborhood_index"
+
+  extended_cultural:
+    description: "Standard + cultural capital"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+      - "cultural_capital_index"
+
+  maximum:
+    description: "All available circumstances (upper bound)"
+    variables:
+      - "educp"
+      - "educm"
+      - "clasep"
+      - "sexo"
+      - "indigenous"
+      - "skin_tone"
+      - "region_14"
+      - "cohorte"
+      - "rural_14"
+      - "household_economic_index"
+      - "neighborhood_index"
+      - "cultural_capital_index"
+      - "crowding_index"
+      - "financial_inclusion_index"
