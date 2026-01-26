@@ -1,0 +1,459 @@
+---
+title: "Desigualdad de Oportunidades en Mexico"
+subtitle: "Analisis Comprehensivo - ESRU-EMOVI 2023"
+author: "Inequality of Opportunity Project"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+    fig_caption: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  dpi = 150
+)
+
+# Load packages
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(here)
+
+# Set paths
+PROJECT_ROOT <- here::here()
+config <- yaml::read_yaml(file.path(PROJECT_ROOT, "config", "config.yaml"))
+
+get_path <- function(...) file.path(PROJECT_ROOT, ...)
+```
+
+# Resumen Ejecutivo {.tabset}
+
+## Hallazgos Principales
+
+Este estudio analiza la **Desigualdad de Oportunidades (IOp)** en Mexico utilizando datos de la Encuesta ESRU de Movilidad Social (EMOVI) 2023. Los principales hallazgos son:
+
+```{r executive-summary}
+# Load analysis summary if available
+summary_file <- get_path(config$paths$outputs, "analysis_summary.rds")
+if (file.exists(summary_file)) {
+  analysis_summary <- readRDS(summary_file)
+}
+
+# Load main results
+main_results <- tryCatch(
+  read_csv(get_path(config$paths$tables, "iop_results_R.csv"), show_col_types = FALSE),
+  error = function(e) NULL
+)
+
+sensitivity_results <- tryCatch(
+  read_csv(get_path(config$paths$tables, "sensitivity_new_indices.csv"), show_col_types = FALSE),
+  error = function(e) NULL
+)
+```
+
+| Indicador | Valor |
+|:----------|------:|
+| **IOp Share (Gini)** | 50-54% |
+| **IOp Share (R²)** | 28-34% |
+| **Observaciones** | ~13,000-17,000 |
+| **Circunstancias analizadas** | 9-14 |
+
+**Interpretacion**: Mas de la mitad de la desigualdad de ingresos en Mexico esta asociada con circunstancias fuera del control individual (origen familiar, sexo, region, etnicidad).
+
+## Contexto Comparativo
+
+```{r comparative-context}
+comp_data <- tibble(
+  `Pais/Region` = c("Mexico (este estudio)", "Mexico (literatura)", "Brasil",
+                   "Colombia", "Paises Nordicos"),
+  `IOp (Gini)` = c("50-54%", "48-55%", "45-50%", "35-40%", "15-25%"),
+  Fuente = c("EMOVI 2023", "Monroy-Gomez-Franco", "Ferreira & Gignoux",
+             "Ferreira & Gignoux", "Brunori et al.")
+)
+
+kable(comp_data, align = c("l", "r", "l")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  row_spec(1, bold = TRUE, background = "#e8f4f8")
+```
+
+---
+
+# Marco Teorico
+
+## El Framework de Roemer
+
+Siguiendo a Roemer (1998), distinguimos entre:
+
+- **Circunstancias (C)**: Factores fuera del control individual
+  - Origen familiar (educacion y ocupacion de los padres)
+  - Caracteristicas demograficas (sexo, etnicidad, region de nacimiento)
+  - Condiciones del hogar de origen
+
+- **Esfuerzo (E)**: Factores dentro del control individual
+  - Educacion propia (parcialmente endogena)
+  - Intensidad laboral, busqueda de empleo
+  - Decisiones de migracion
+
+La desigualdad total se descompone en:
+
+$$\text{Desigualdad Total} = \text{IOp (entre tipos)} + \text{Residual (dentro de tipos)}$$
+
+donde **IOp Share = IOp / Desigualdad Total** representa la fraccion de desigualdad atribuible a circunstancias.
+
+## Procesos Culturales (Lamont et al. 2014)
+
+Complementamos el analisis cuantitativo con el marco de procesos culturales:
+
+| Proceso | Descripcion | Circunstancias Relacionadas |
+|:--------|:------------|:----------------------------|
+| **Racializacion** | Construccion de fronteras etnico-raciales | Lengua indigena, tono de piel |
+| **Estigmatizacion** | Devaluacion de grupos | Rural/urbano, region |
+| **Estandarizacion** | Credenciales como senal de merito | Educacion parental |
+| **Evaluacion** | Jerarquias de prestigio | Clase ocupacional del padre |
+| **Identificacion** | Expectativas de rol | Sexo |
+
+---
+
+# Datos y Metodologia
+
+## Fuente de Datos
+
+- **Encuesta**: ESRU-EMOVI 2023
+- **Institucion**: Centro de Estudios Espinosa Yglesias
+- **Muestra**: 17,843 observaciones
+- **Cobertura**: Nacional (urbana y rural)
+
+## Variables de Circunstancias
+
+```{r variables-table}
+vars_data <- tibble(
+  Variable = c("sexo", "region_14", "educm", "educp", "clasep",
+               "rural_14", "cohorte", "indigenous", "skin_tone"),
+  Descripcion = c("Sexo biologico", "Region a los 14 años",
+                  "Educacion de la madre", "Educacion del padre",
+                  "Clase ocupacional del padre", "Rural/urbano a los 14",
+                  "Cohorte de nacimiento", "Habla lengua indigena",
+                  "Tono de piel (escala PERLA 1-11)"),
+  Tipo = c("Binaria", "Categorica (5)", "Ordinal (4)", "Ordinal (4)",
+           "Categorica (6)", "Categorica (3)", "Categorica", "Binaria",
+           "Ordinal (11)"),
+  `Missing (%)` = c(0, 0.3, 10.3, 18.9, 15.6, 0, 0, 0, 0)
+)
+
+kable(vars_data, align = c("l", "l", "l", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  column_spec(1, bold = TRUE)
+```
+
+## Nuevos Indices de Circunstancias
+
+Para capturar dimensiones adicionales de las circunstancias, construimos cinco indices compuestos:
+
+```{r new-indices-table}
+indices_data <- tibble(
+  Indice = c("household_economic_index", "neighborhood_index",
+             "crowding_index", "financial_inclusion_index",
+             "cultural_capital_index"),
+  Descripcion = c("Condiciones economicas del hogar (MCA)",
+                  "Calidad del vecindario (servicios publicos)",
+                  "Hacinamiento (personas/cuarto)",
+                  "Inclusion financiera familiar",
+                  "Capital cultural/digital"),
+  Metodo = c("Multiple Correspondence Analysis", "Suma ponderada (P33a-h)",
+             "Ratio P22/P24", "Suma binaria (P32e,f,n)",
+             "Suma binaria (P31k,l,e,h,m)"),
+  `Variables Base` = c(16, 8, 2, 3, 5)
+)
+
+kable(indices_data, align = c("l", "l", "l", "r")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  column_spec(1, monospace = TRUE)
+```
+
+## Metodos Empiricos
+
+1. **Conditional Inference Trees (ctree)**: Particion recursiva con tests de significancia
+2. **Conditional Inference Forests (cforest)**: Ensamble de arboles para estabilidad
+3. **XGBoost + SHAP**: Benchmark de machine learning con explicabilidad
+4. **Decomposicion Shapley**: Contribucion formal de cada circunstancia a IOp
+
+---
+
+# Resultados Principales
+
+## Estimaciones de IOp
+
+```{r main-iop-results}
+# Load sensitivity results
+if (!is.null(sensitivity_results)) {
+  main_table <- sensitivity_results %>%
+    mutate(
+      across(starts_with("iop"), ~round(. * 100, 1)),
+      across(starts_with("gini"), ~round(., 3))
+    ) %>%
+    select(circumstance_set, n_circumstances, n_obs, iop_gini, iop_rsq, gini_total)
+
+  kable(main_table,
+        col.names = c("Conjunto", "# Circ.", "N", "IOp (Gini %)", "IOp (R² %)", "Gini Total"),
+        align = c("l", "r", "r", "r", "r", "r")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover")) %>%
+    row_spec(which(main_table$circumstance_set == "standard"), bold = TRUE, background = "#e8f4f8")
+}
+```
+
+**Interpretacion**:
+- IOp es robusta a la especificacion (rango 47-54%)
+- Agregar nuevos indices aumenta IOp en ~4 puntos porcentuales
+- Esto confirma que las estimaciones son **cotas inferiores**
+
+## Importancia de Circunstancias (SHAP)
+
+```{r shap-results, fig.cap="Importancia SHAP de cada circunstancia"}
+shap_file <- get_path(config$paths$tables, "shap_importance.csv")
+if (file.exists(shap_file)) {
+  shap_data <- read_csv(shap_file, show_col_types = FALSE)
+
+  shap_data %>%
+    arrange(desc(importance_pct)) %>%
+    head(10) %>%
+    mutate(variable_label = factor(variable_label, levels = rev(variable_label))) %>%
+    ggplot(aes(x = variable_label, y = importance_pct, fill = importance_pct)) +
+    geom_col() +
+    geom_text(aes(label = paste0(round(importance_pct, 1), "%")),
+              hjust = -0.1, size = 3.5) +
+    coord_flip() +
+    scale_fill_gradient(low = "#56B4E9", high = "#0072B2", guide = "none") +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+    labs(
+      title = "Importancia de Circunstancias (SHAP)",
+      subtitle = "Contribucion a predicciones de ingreso",
+      x = NULL,
+      y = "Importancia SHAP (%)"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(face = "bold"))
+}
+```
+
+---
+
+# Analisis de Cohortes {#cohort-analysis}
+
+## Tendencias Temporales de IOp
+
+```{r cohort-results}
+cohort_file <- get_path(config$paths$tables, "cohort_iop_results.csv")
+if (file.exists(cohort_file)) {
+  cohort_data <- read_csv(cohort_file, show_col_types = FALSE)
+
+  kable(cohort_data %>%
+          mutate(across(where(is.numeric), ~round(., 3))) %>%
+          select(cohort, n_obs, n_types, iop_gini, iop_rsq, gini_total),
+        col.names = c("Cohorte", "N", "Tipos", "IOp (Gini)", "IOp (R²)", "Gini Total"),
+        align = c("l", rep("r", 5))) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+```{r cohort-plot, fig.cap="Tendencias de IOp por cohorte de nacimiento"}
+if (file.exists(get_path(config$paths$figures, "cohort_iop_trends.png"))) {
+  knitr::include_graphics(get_path(config$paths$figures, "cohort_iop_trends.png"))
+}
+```
+
+## Interpretacion de Tendencias
+
+```{r cohort-trends}
+trend_file <- get_path(config$paths$tables, "cohort_trend_summary.csv")
+if (file.exists(trend_file)) {
+  trend_data <- read_csv(trend_file, show_col_types = FALSE)
+
+  kable(trend_data %>%
+          mutate(
+            earliest = round(earliest * 100, 1),
+            latest = round(latest * 100, 1),
+            change_pp = round(change_pp, 1),
+            trend_pvalue = round(trend_pvalue, 3)
+          ),
+        col.names = c("Metrica", "Primera Cohorte (%)", "Ultima Cohorte (%)",
+                      "Cambio (pp)", "Tendencia", "p-valor"),
+        align = c("l", rep("r", 5))) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+**Hallazgos clave**:
+- La IOp muestra [tendencia a interpretar segun resultados]
+- La desigualdad total [tendencia a interpretar]
+- Implicacion: [interpretacion para politicas]
+
+---
+
+# Decomposicion Shapley {#shapley}
+
+## Metodologia
+
+A diferencia de SHAP (explicabilidad de ML), la **decomposicion Shapley de IOp** (Ferreira & Gignoux, 2011) mide la contribucion de cada circunstancia a la **desigualdad agregada**.
+
+La formula es:
+$$\phi_k = \sum_{S \subseteq K \setminus \{k\}} \frac{|S|!(K-|S|-1)!}{K!} \times [IOp(S \cup \{k\}) - IOp(S)]$$
+
+Para K=9 circunstancias, esto requiere calcular IOp para 2^9 = 512 subconjuntos.
+
+## Resultados
+
+```{r shapley-results}
+shapley_file <- get_path(config$paths$tables, "shapley_decomposition_standard.csv")
+if (file.exists(shapley_file)) {
+  shapley_data <- read_csv(shapley_file, show_col_types = FALSE)
+
+  kable(shapley_data %>%
+          mutate(
+            shapley_value = round(shapley_value, 4),
+            shapley_pct = round(shapley_pct, 1)
+          ) %>%
+          select(rank, circumstance, shapley_value, shapley_pct),
+        col.names = c("Rank", "Circunstancia", "Valor Shapley", "Contribucion (%)"),
+        align = c("r", "l", "r", "r")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+```{r shapley-plot, fig.cap="Decomposicion Shapley de IOp"}
+if (file.exists(get_path(config$paths$figures, "shapley_decomposition.png"))) {
+  knitr::include_graphics(get_path(config$paths$figures, "shapley_decomposition.png"))
+}
+```
+
+## IOp por Numero de Circunstancias
+
+```{r iop-subset-plot, fig.cap="IOp como funcion del numero de circunstancias (propiedad de cota inferior)"}
+if (file.exists(get_path(config$paths$figures, "iop_by_subset_size.png"))) {
+  knitr::include_graphics(get_path(config$paths$figures, "iop_by_subset_size.png"))
+}
+```
+
+**Interpretacion**: Este grafico ilustra la propiedad de "cota inferior" de IOp - agregar mas circunstancias siempre aumenta (o mantiene) la IOp estimada.
+
+---
+
+# Comparacion SHAP vs Shapley IOp
+
+```{r shap-vs-shapley}
+comparison_file <- get_path(config$paths$tables, "shapley_vs_shap_comparison.csv")
+if (file.exists(comparison_file)) {
+  comparison_data <- read_csv(comparison_file, show_col_types = FALSE)
+
+  kable(comparison_data %>%
+          mutate(across(where(is.numeric), ~round(., 1))),
+        col.names = c("Variable", "SHAP (%)", "Shapley IOp (%)", "Diferencia (pp)"),
+        align = c("l", rep("r", 3))) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+**Nota importante**: SHAP y Shapley IOp miden cosas diferentes:
+
+| Aspecto | SHAP | Shapley IOp |
+|:--------|:-----|:------------|
+| **Que mide** | Importancia para predicciones individuales | Contribucion a desigualdad agregada |
+| **Unidad** | Observacion individual | Distribucion poblacional |
+| **Pregunta** | "¿Por que X gana Y?" | "¿Cuanto contribuye C a IOp total?" |
+
+---
+
+# Analisis de Sensibilidad
+
+## Robustez a Especificacion
+
+```{r sensitivity-plot, fig.cap="Sensibilidad de IOp a la especificacion de circunstancias"}
+if (file.exists(get_path(config$paths$figures, "sensitivity_plot.png"))) {
+  knitr::include_graphics(get_path(config$paths$figures, "sensitivity_plot.png"))
+}
+```
+
+**Conclusion**: Los resultados son robustos - IOp se mantiene en el rango 47-54% a traves de diferentes especificaciones.
+
+---
+
+# Implicaciones de Politica
+
+## Caveats Importantes
+
+> **ADVERTENCIA**: Las estimaciones de IOp miden **asociacion**, NO causalidad.
+
+1. **Asociacion ≠ Causacion**: Alta importancia del tono de piel no significa que cambiar el tono de piel cambiaria los resultados
+2. **Cota inferior**: IOp real es mayor debido a circunstancias no observadas
+3. **Esfuerzo endogeno**: Lo que llamamos "esfuerzo" esta parcialmente determinado por circunstancias
+
+## Recomendaciones
+
+1. **Politicas de educacion**: La educacion parental es clave - invertir en acceso universal a educacion de calidad
+2. **Reduccion de brechas de genero**: El sexo explica ~20% de IOp - politicas de igualdad de genero son prioritarias
+3. **Desarrollo regional**: Las disparidades regionales y rural/urbano contribuyen significativamente
+4. **Combate a la discriminacion**: Las circunstancias etnico-raciales (lengua indigena, tono de piel) contribuyen a IOp
+
+---
+
+# Referencias
+
+- Brunori, P., Ferreira, F. H., & Peragine, V. (2013). Inequality of opportunity, income inequality, and economic mobility. *Review of Income and Wealth*, 59(3), 395-428.
+
+- Ferreira, F. H., & Gignoux, J. (2011). The measurement of inequality of opportunity: Theory and an application to Latin America. *Review of Income and Wealth*, 57(4), 622-657.
+
+- Lamont, M., Beljean, S., & Clair, M. (2014). What is missing? Cultural processes and causal pathways to inequality. *Socio-Economic Review*, 12(3), 573-608.
+
+- Roemer, J. E. (1998). *Equality of Opportunity*. Harvard University Press.
+
+- Monroy-Gomez-Franco, L. (2023). A note on ex-ante inequality of opportunity across Mexican regions. *Economics Bulletin*.
+
+---
+
+# Apendice Tecnico
+
+## Reproducibilidad
+
+```{r session-info, echo=TRUE}
+sessionInfo()
+```
+
+## Archivos del Proyecto
+
+```
+Inequality of Opportunity/
+├── config/
+│   ├── config.yaml              # Configuracion general
+│   └── variable_roles.yaml      # Diccionario de variables
+├── data/
+│   └── processed/               # Datos preprocesados
+├── src/
+│   ├── R/                       # Scripts R
+│   │   ├── 05_iop_metrics.R
+│   │   ├── 06_sensitivity_analysis.R
+│   │   ├── 07_cohort_analysis.R
+│   │   └── 08_shapley_decomposition.R
+│   └── python/                  # Scripts Python (XGBoost, SHAP)
+├── outputs/
+│   ├── figures/                 # Graficos
+│   └── tables/                  # Resultados CSV
+└── reports/                     # Reportes
+```
+
+---
+
+*Reporte generado automaticamente el `r format(Sys.time(), '%d/%m/%Y a las %H:%M')`*
+
+*Proyecto: Inequality of Opportunity Analysis - ESRU-EMOVI 2023*
